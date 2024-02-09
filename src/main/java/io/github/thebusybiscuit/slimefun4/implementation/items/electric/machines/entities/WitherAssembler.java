@@ -12,6 +12,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.Wither;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Objects;
+
 /**
  * The {@link WitherAssembler} is an electrical machine that can automatically spawn
  * a {@link Wither} if the required ingredients have been provided.
@@ -74,6 +76,11 @@ public class WitherAssembler extends AbstractEntityAssembler<Wither> {
 
     @Override
     public Wither spawnEntity(Location l) {
-        return l.getWorld().spawn(l, Wither.class);
+        //取消生成凋零
+//        return l.getWorld().spawn(l, Wither.class);
+
+        //直接生成一个下界之星掉落物
+        Objects.requireNonNull(l.getWorld()).dropItem(l, new ItemStack(Material.NETHER_STAR));
+        return null;
     }
 }
