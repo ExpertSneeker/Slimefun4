@@ -7925,11 +7925,11 @@ public final class SlimefunItemSetup {
                             new ItemStack(Material.HAY_BLOCK),
                             null,
                             new ItemStack(Material.BUCKET),
-                            SlimefunItems.MEDIUM_CAPACITOR,
+                            SlimefunItems.ENERGIZED_CAPACITOR,
                             new ItemStack(Material.BUCKET),
-                            SlimefunItems.ALUMINUM_BRASS_INGOT,
+                            SlimefunItems.BLISTERING_INGOT_3,
                             SlimefunItems.ELECTRIC_MOTOR,
-                            SlimefunItems.ALUMINUM_BRASS_INGOT
+                            SlimefunItems.BLISTERING_INGOT_3
                         })
                 .setCapacity(256)
                 .setProcessingSpeed(1)
