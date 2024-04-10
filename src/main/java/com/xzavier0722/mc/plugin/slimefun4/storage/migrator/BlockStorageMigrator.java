@@ -11,12 +11,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.logging.Level;
+import lombok.Getter;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 
 public class BlockStorageMigrator implements IMigrator {
+    @Getter
     private static final BlockStorageMigrator instance = new BlockStorageMigrator();
 
     private static final File invFolder = new File("data-storage/Slimefun/stored-inventories/");
@@ -26,10 +28,6 @@ public class BlockStorageMigrator implements IMigrator {
     private static volatile boolean migrateLock = false;
 
     private BlockStorageMigrator() {}
-
-    public static BlockStorageMigrator getInstance() {
-        return instance;
-    }
 
     @Override
     public String getName() {

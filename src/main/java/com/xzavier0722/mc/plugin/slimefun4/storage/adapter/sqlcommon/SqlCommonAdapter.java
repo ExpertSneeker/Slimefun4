@@ -1,15 +1,15 @@
 package com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon;
 
+import city.norain.slimefun4.utils.SimpleTimer;
 import com.xzavier0722.mc.plugin.slimefun4.storage.adapter.IDataSourceAdapter;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.DataScope;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordSet;
 import com.zaxxer.hikari.HikariDataSource;
 import io.github.thebusybiscuit.slimefun4.core.debug.Debug;
 import io.github.thebusybiscuit.slimefun4.core.debug.TestCase;
-import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.List;
-import java.util.logging.Level;
 
 public abstract class SqlCommonAdapter<T extends ISqlCommonConfig> implements IDataSourceAdapter<T> {
     protected HikariDataSource ds;
@@ -24,25 +24,29 @@ public abstract class SqlCommonAdapter<T extends ISqlCommonConfig> implements ID
     }
 
     protected void executeSql(String sql) {
+        var timer = new SimpleTimer();
+
         try (var conn = ds.getConnection()) {
             SqlUtils.execSql(conn, sql);
         } catch (SQLException e) {
-            if (Debug.hasTestCase(TestCase.DATABASE)) {
-                throw new IllegalStateException("An exception thrown while executing sql: " + sql, e);
-            } else {
-                Slimefun.logger().log(Level.WARNING, "在操作数据库出现了问题, 原始 SQL 语句: {0}", sql);
+            throw new IllegalStateException("An exception thrown while executing sql: " + sql, e);
+        } finally {
+            if (timer.isTimeout(Duration.ofSeconds(2))) { // FIXME: hardcode slow sql check duration
+                Debug.log(TestCase.DATABASE, "Detected slow sql costs {}, sql: {}", timer.durationStr(), sql);
             }
         }
     }
 
     protected List<RecordSet> executeQuery(String sql) {
+        var timer = new SimpleTimer();
+
         try (var conn = ds.getConnection()) {
             return SqlUtils.execQuery(conn, sql);
         } catch (SQLException e) {
-            if (Debug.hasTestCase(TestCase.DATABASE)) {
-                throw new IllegalStateException("An exception thrown while executing sql: " + sql, e);
-            } else {
-                throw new IllegalStateException("在操作数据库出现了问题, 原始 SQL 语句: " + sql);
+            throw new IllegalStateException("An exception thrown while executing sql: " + sql, e);
+        } finally {
+            if (timer.isTimeout(Duration.ofSeconds(2))) { // FIXME: hardcode slow sql check duration
+                Debug.log(TestCase.DATABASE, "Detected slow sql costs {}, sql: {}", timer.durationStr(), sql);
             }
         }
     }

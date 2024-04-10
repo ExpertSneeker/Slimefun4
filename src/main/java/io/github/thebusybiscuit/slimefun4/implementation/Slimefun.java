@@ -462,17 +462,19 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
         Bukkit.getScheduler().cancelTasks(this);
 
         // Finishes all started movements/removals of block data
-        try {
-            ticker.halt();
-            ticker.run();
-        } catch (Exception x) {
-            getLogger()
-                    .log(
-                            Level.SEVERE,
-                            x,
-                            () -> "Something went wrong while disabling the ticker task for Slimefun v"
-                                    + getDescription().getVersion());
-        }
+        ticker.setPaused(true);
+        ticker.halt();
+        /**try {
+         * ticker.halt();
+         * ticker.run();
+         * } catch (Exception x) {
+         * getLogger()
+         * .log(
+         * Level.SEVERE,
+         * x,
+         * () -> "Something went wrong while disabling the ticker task for Slimefun v"
+         * + getDescription().getVersion());
+         * }*/
 
         // Kill our Profiler Threads
         profiler.kill();

@@ -97,6 +97,9 @@ public class BlockPhysicsListener implements Listener {
                     block.setType(Material.AIR);
                 }
             }
+
+                // Don't move my machine :|
+            case ENDERMAN -> e.setCancelled(true);
         }
     }
 

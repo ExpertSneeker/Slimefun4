@@ -415,7 +415,6 @@ public class BlockDataController extends ADataController {
             if (chunkData.isDataLoaded()) {
                 return;
             }
-
             getData(key)
                     .forEach(data -> chunkData.setCacheInternal(
                             data.get(FieldKey.DATA_KEY),
@@ -593,6 +592,21 @@ public class BlockDataController extends ADataController {
         return re;
     }
 
+    public void removeFromAllChunkInWorld(World world, String key) {
+        var req = new RecordKey(DataScope.CHUNK_DATA);
+        req.addCondition(FieldKey.CHUNK, world.getName() + ";%");
+        req.addCondition(FieldKey.DATA_KEY, key);
+        deleteData(req);
+        getAllLoadedChunkData(world).forEach(data -> data.removeData(key));
+    }
+
+    public void removeFromAllChunkInWorldAsync(World world, String key, Runnable onFinishedCallback) {
+        scheduleWriteTask(() -> {
+            removeFromAllChunkInWorld(world, key);
+            onFinishedCallback.run();
+        });
+    }
+
     private void scheduleDelayedBlockInvUpdate(SlimefunBlockData blockData, int slot) {
         var scopeKey = new LocationKey(DataScope.NONE, blockData.getLocation());
         var reqKey = new RecordKey(DataScope.BLOCK_INVENTORY);
@@ -729,7 +743,7 @@ public class BlockDataController extends ADataController {
     }
 
     private void deleteChunkAndBlockDataDirectly(String cKey) {
-        var req = new RecordKey(DataScope.BLOCK_DATA);
+        var req = new RecordKey(DataScope.BLOCK_RECORD);
         req.addCondition(FieldKey.CHUNK, cKey);
         deleteData(req);
 

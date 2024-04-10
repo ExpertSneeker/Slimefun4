@@ -28,8 +28,6 @@ import com.xzavier0722.mc.plugin.slimefun4.storage.common.FieldKey;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.FieldMapper;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordSet;
 import io.github.bakedlibs.dough.collections.Pair;
-import io.github.thebusybiscuit.slimefun4.core.debug.Debug;
-import io.github.thebusybiscuit.slimefun4.core.debug.TestCase;
 import java.sql.Connection;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -122,8 +120,6 @@ public class SqlUtils {
     }
 
     public static List<RecordSet> execQuery(Connection conn, String sql) throws SQLException {
-        Debug.log(TestCase.DATABASE, "Prepare execute sql query: {}", sql);
-
         try (var stmt = conn.createStatement()) {
             try (var result = stmt.executeQuery(sql)) {
                 List<RecordSet> re = null;
@@ -148,16 +144,12 @@ public class SqlUtils {
     }
 
     public static void execSql(Connection conn, String sql) throws SQLException {
-        Debug.log(TestCase.DATABASE, "Prepare execute sql statement: {}", sql);
-
         try (var stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
     }
 
     public static int execUpdate(Connection conn, String sql) throws SQLException {
-        Debug.log(TestCase.DATABASE, "Prepare execute update statement: {}", sql);
-
         try (var stmt = conn.createStatement()) {
             return stmt.executeUpdate(sql);
         }

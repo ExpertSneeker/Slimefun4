@@ -15,13 +15,17 @@ import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlC
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_RESEARCH_KEY;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_SLIMEFUN_ID;
 
+import city.norain.slimefun4.utils.SimpleTimer;
 import com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlCommonAdapter;
 import com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlUtils;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.DataScope;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.DataType;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordKey;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordSet;
+import io.github.thebusybiscuit.slimefun4.core.debug.Debug;
+import io.github.thebusybiscuit.slimefun4.core.debug.TestCase;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.List;
 
 public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
@@ -316,10 +320,15 @@ public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
     }
 
     private synchronized int executeUpdate(String sql) {
+        var timer = new SimpleTimer();
         try (var conn = ds.getConnection()) {
             return SqlUtils.execUpdate(conn, sql);
         } catch (SQLException e) {
             throw new IllegalStateException("An exception thrown while executing sql: " + sql, e);
+        } finally {
+            if (timer.isTimeout(Duration.ofSeconds(2))) { // FIXME: hardcode slow sql check duration
+                Debug.log(TestCase.DATABASE, "Detected slow sql costs {}, sql: {}", timer.durationStr(), sql);
+            }
         }
     }
 }

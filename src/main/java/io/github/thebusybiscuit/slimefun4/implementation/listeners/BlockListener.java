@@ -9,7 +9,10 @@ import io.github.thebusybiscuit.slimefun4.api.events.ExplosiveToolBreakBlocksEve
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBreakEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPlaceEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
+import io.github.thebusybiscuit.slimefun4.core.attributes.NotCardinallyRotatable;
+import io.github.thebusybiscuit.slimefun4.core.attributes.NotDiagonallyRotatable;
 import io.github.thebusybiscuit.slimefun4.core.attributes.NotPlaceable;
+import io.github.thebusybiscuit.slimefun4.core.attributes.NotRotatable;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.ToolUseHandler;
@@ -27,8 +30,8 @@ import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -116,13 +119,42 @@ public class BlockListener implements Listener {
             if (!sfItem.canUse(e.getPlayer(), true)) {
                 e.setCancelled(true);
             } else {
+                if (e.getBlock().getBlockData() instanceof Rotatable rotatable
+                        && !(rotatable.getRotation() == BlockFace.UP || rotatable.getRotation() == BlockFace.DOWN)) {
+                    BlockFace rotation = null;
+
+                    if (sfItem instanceof NotCardinallyRotatable && sfItem instanceof NotDiagonallyRotatable) {
+                        rotation = BlockFace.NORTH;
+                    } else if (sfItem instanceof NotRotatable notRotatable) {
+                        rotation = notRotatable.getRotation();
+                    } else if (sfItem instanceof NotCardinallyRotatable notRotatable) {
+                        rotation = notRotatable.getRotation(
+                                e.getPlayer().getLocation().getYaw());
+                    } else if (sfItem instanceof NotDiagonallyRotatable notRotatable) {
+                        rotation = notRotatable.getRotation(
+                                e.getPlayer().getLocation().getYaw());
+                    }
+
+                    if (rotation != null) {
+                        rotatable.setRotation(rotation);
+                        e.getBlock().setBlockData(rotatable);
+                    }
+                }
                 var placeEvent = new SlimefunBlockPlaceEvent(e.getPlayer(), item, e.getBlock(), sfItem);
                 Bukkit.getPluginManager().callEvent(placeEvent);
 
-                Slimefun.getDatabaseManager()
-                        .getBlockDataController()
-                        .createBlock(e.getBlock().getLocation(), sfItem.getId());
-                sfItem.callItemHandler(BlockPlaceHandler.class, handler -> handler.onPlayerPlace(e));
+                if (placeEvent.isCancelled()) {
+                    e.setCancelled(true);
+                } else {
+                    if (Slimefun.getBlockDataService().isTileEntity(e.getBlock().getType())) {
+                        Slimefun.getBlockDataService().setBlockData(e.getBlock(), sfItem.getId());
+                    }
+
+                    Slimefun.getDatabaseManager()
+                            .getBlockDataController()
+                            .createBlock(e.getBlock().getLocation(), sfItem.getId());
+                    sfItem.callItemHandler(BlockPlaceHandler.class, handler -> handler.onPlayerPlace(e));
+                }
             }
         }
     }
@@ -330,27 +362,28 @@ public class BlockListener implements Listener {
      */
     @ParametersAreNonnullByDefault
     private void checkForSensitiveBlocks(Block block, Integer count, boolean isDropItems) {
-        if (count >= Bukkit.getServer().getMaxChainedNeighborUpdates()) {
-            return;
-        }
-
-        BlockState state = block.getState();
-        // We set the block to air to make use of BlockData#isSupported.
-        block.setType(Material.AIR, false);
-        for (BlockFace face : CARDINAL_BLOCKFACES) {
-            if (!isSupported(block.getRelative(face).getBlockData(), block.getRelative(face))) {
-                Block relative = block.getRelative(face);
-                if (!isDropItems) {
-                    for (ItemStack drop : relative.getDrops()) {
-                        block.getWorld().dropItemNaturally(relative.getLocation(), drop);
-                    }
-                }
-                checkForSensitiveBlocks(relative, ++count, isDropItems);
-            }
-        }
-        // Set the BlockData back: this makes it so containers and spawners drop correctly. This is a hacky fix.
-        block.setBlockData(state.getBlockData(), false);
-        state.update(true, false);
+        /**if (count >= Bukkit.getServer().getMaxChainedNeighborUpdates()) {
+         * return;
+         * }
+         *
+         * BlockState state = block.getState();
+         * // We set the block to air to make use of BlockData#isSupported.
+         * block.setType(Material.AIR, false);
+         * for (BlockFace face : CARDINAL_BLOCKFACES) {
+         * if (!isSupported(block.getRelative(face).getBlockData(), block.getRelative(face))) {
+         * Block relative = block.getRelative(face);
+         * if (!isDropItems) {
+         * for (ItemStack drop : relative.getDrops()) {
+         * block.getWorld().dropItemNaturally(relative.getLocation(), drop);
+         * }
+         * }
+         * checkForSensitiveBlocks(relative, ++count, isDropItems);
+         * }
+         * }
+         * // Set the BlockData back: this makes it so containers and spawners drop correctly. This is a hacky fix.
+         * block.setBlockData(state.getBlockData(), false);
+         * state.update(true, false);
+         */
     }
 
     /**

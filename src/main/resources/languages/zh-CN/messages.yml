@@ -11,6 +11,13 @@ commands:
   stats: 查看玩家的统计数据
   transform: 将物品转换为英文物品
   id: 获取手持物品的 Slimefun ID
+  cleardata:
+    description: 清理世界数据
+    success: '&a已清除&c {0} &a的&c {1} &a数据'
+    block: 方块
+    oil: 石油
+    worldNotFound: '&c未找到世界'
+    confirm: '&e 输入命令/sf cleardata <World> <Type> confirm 来确认操作 &c此操作不可恢复!'
   banitem:
     description: 禁用 Slimefun 物品
     success: '&a禁用成功'
@@ -145,6 +152,10 @@ guide:
       wiki: '&3Wiki 编辑者'
       resourcepack: '&c材质制作者'
       translator: '&9翻译者'
+
+actionbar:
+  radiation: '&6辐射暴露等级：&c%level%&7/&e100'
+
 messages:
   android-no-permission: "&c你的机器人在某个你没有权限的领地/地皮中无法工作, 机器人已自动暂停运行."
   transform:

@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
@@ -130,17 +129,20 @@ public class BackupService implements Runnable {
      *             An {@link IOException} is thrown if a {@link File} could not be deleted
      */
     private void purgeBackups(@Nonnull List<File> backups) throws IOException {
-        Collections.sort(backups, (a, b) -> {
-            LocalDateTime time1 =
-                    LocalDateTime.parse(a.getName().substring(0, a.getName().length() - 4), format);
-            LocalDateTime time2 =
-                    LocalDateTime.parse(b.getName().substring(0, b.getName().length() - 4), format);
+        var matchedBackup = backups.stream()
+                .filter(f -> f.getName().matches("^\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}$"))
+                .sorted((a, b) -> {
+                    LocalDateTime time1 = LocalDateTime.parse(
+                            a.getName().substring(0, a.getName().length() - 4), format);
+                    LocalDateTime time2 = LocalDateTime.parse(
+                            b.getName().substring(0, b.getName().length() - 4), format);
 
-            return time2.compareTo(time1);
-        });
+                    return time2.compareTo(time1);
+                })
+                .toList();
 
-        for (int i = backups.size() - MAX_BACKUPS; i > 0; i--) {
-            Files.delete(backups.get(i).toPath());
+        for (int i = matchedBackup.size() - MAX_BACKUPS; i > 0; i--) {
+            Files.delete(matchedBackup.get(i).toPath());
         }
     }
 }

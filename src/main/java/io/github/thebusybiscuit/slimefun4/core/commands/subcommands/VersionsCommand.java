@@ -85,6 +85,11 @@ class VersionsCommand extends SubCommand {
                     .append("\n请不要将此版本信息截图到 Discord/Github 反馈 Bug" + "\n优先到汉化页面反馈" + "\n")
                     .color(ChatColor.RED);
 
+            if (Slimefun.getConfigManager().isBypassEnvironmentCheck()) {
+                builder.append("\n").event((HoverEvent) null);
+                builder.append("\n已禁用环境兼容性检查").color(ChatColor.RED);
+            }
+
             builder.append("\n").event((HoverEvent) null);
             addPluginVersions(builder);
 

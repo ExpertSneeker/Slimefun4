@@ -190,6 +190,9 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
 
         for (Location node : outputNodes) {
             int frequency = getFrequency(node);
+            if (frequency == -1) {
+                continue;
+            }
 
             if (frequency != lastFrequency && lastFrequency != -1) {
                 output.merge(lastFrequency, list, (prev, next) -> {
@@ -227,18 +230,18 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
     private static int getFrequency(@Nonnull Location node) {
         var data = StorageCacheUtils.getBlock(node);
         if (data == null) {
-            return 0;
+            return -1;
         }
 
         if (!data.isDataLoaded()) {
             StorageCacheUtils.requestLoad(data);
-            return 0;
+            return -1;
         }
 
         String frequency = data.getData("frequency");
 
         if (frequency == null) {
-            return 0;
+            return -1;
         } else if (!CommonPatterns.NUMERIC.matcher(frequency).matches()) {
             Slimefun.logger()
                     .log(
@@ -253,7 +256,7 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
                                     + node.getBlockZ()
                                     + "): "
                                     + frequency);
-            return 0;
+            return -1;
         } else {
             return Integer.parseInt(frequency);
         }

@@ -2,18 +2,11 @@
 
 echo "[pre-commit check]"
 
-STAGED_FILES=$(git --no-pager diff --name-only --staged --line-prefix=$(git rev-parse --show-toplevel)/ | paste -sd ',')
-
-if [ ! -z "$STAGED_FILES" ]
+echo -n "Checking code format with spotless: "
+mvn spotless:check > /tmp/spotless.out 2>&1
+RETURN_VALUE=$?
+if [ $RETURN_VALUE -gt 0 ]
 then
-  echo -n "Checking code format with spotless: "
-  mvn spotless:check -DspotlessFiles=$STAGED_FILES > /tmp/spotless.out 2>&1
-  RETURN_VALUE=$?
-  if [ $RETURN_VALUE -gt 0 ]
-  then
-    echo "Please run 'mvn spotless:check' for more details or 'mvn spotless:apply' to automatically fix the violations."
-  fi
-  exit $RETURN_VALUE
+  echo "Please run 'mvn spotless:check' for more details or 'mvn spotless:apply' to automatically fix the violations."
 fi
-
-exit 0
+exit $RETURN_VALUE

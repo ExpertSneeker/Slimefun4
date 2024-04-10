@@ -12,9 +12,11 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.generator.WorldInfo;
 
 class SlimefunTabCompleter implements TabCompleter {
 
@@ -38,6 +40,11 @@ class SlimefunTabCompleter implements TabCompleter {
                         .map(SlimefunItem::getId)
                         .collect(Collectors.toList());
                 return createReturnList(list, args[1]);
+            } else if (args[0].equalsIgnoreCase("cleardata")) {
+                List<String> list = new ArrayList<>(
+                        Bukkit.getWorlds().stream().map(WorldInfo::getName).toList());
+                list.add("*");
+                return createReturnList(list, args[1]);
             }
             return null;
         } else if (args.length == 3) {
@@ -55,6 +62,8 @@ class SlimefunTabCompleter implements TabCompleter {
                 }
 
                 return createReturnList(suggestions, args[2]);
+            } else if (args[0].equalsIgnoreCase("cleardata")) {
+                return createReturnList(List.of("block", "oil", "*"), args[2]);
             } else {
                 // Returning null will make it fallback to the default arguments (all online players)
                 return null;

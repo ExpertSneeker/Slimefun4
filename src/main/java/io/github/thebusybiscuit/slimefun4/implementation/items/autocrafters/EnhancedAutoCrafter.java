@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.autocrafters;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.core.attributes.NotDiagonallyRotatable;
 import io.github.thebusybiscuit.slimefun4.implementation.items.multiblocks.EnhancedCraftingTable;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.AutoCrafterListener;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -20,7 +21,7 @@ import org.bukkit.inventory.ItemStack;
  * @see AutoCrafterListener
  *
  */
-public class EnhancedAutoCrafter extends SlimefunAutoCrafter {
+public class EnhancedAutoCrafter extends SlimefunAutoCrafter implements NotDiagonallyRotatable {
 
     @ParametersAreNonnullByDefault
     public EnhancedAutoCrafter(ItemGroup itemGroup, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
