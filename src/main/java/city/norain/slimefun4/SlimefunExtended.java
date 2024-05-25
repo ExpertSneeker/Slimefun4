@@ -1,12 +1,24 @@
 package city.norain.slimefun4;
 
 import city.norain.slimefun4.listener.SlimefunMigrateListener;
+import city.norain.slimefun4.utils.HikariLogFilter;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
+import lombok.Getter;
 
 public final class SlimefunExtended {
     private static SlimefunMigrateListener migrateListener = new SlimefunMigrateListener();
+
+    @Getter
+    private static boolean databaseDebugMode = false;
+
+    private static void checkDebug() {
+        if ("true".equals(System.getProperty("slimefun.database.debug"))) {
+            databaseDebugMode = true;
+            HikariLogFilter.registerFilter(org.apache.logging.log4j.Level.DEBUG);
+        }
+    }
 
     public static boolean checkEnvironment(@Nonnull Slimefun sf) {
         if (EnvironmentChecker.checkHybridServer()) {
@@ -40,6 +52,8 @@ public final class SlimefunExtended {
     public static void register(@Nonnull Slimefun sf) {
         EnvironmentChecker.scheduleSlimeGlueCheck(sf);
 
+        checkDebug();
+
         VaultIntegration.register(sf);
 
         migrateListener.register(sf);
@@ -49,5 +63,7 @@ public final class SlimefunExtended {
         migrateListener = null;
 
         VaultIntegration.cleanup();
+
+        databaseDebugMode = false;
     }
 }

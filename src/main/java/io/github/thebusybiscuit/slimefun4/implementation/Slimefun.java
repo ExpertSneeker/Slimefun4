@@ -1,6 +1,7 @@
 package io.github.thebusybiscuit.slimefun4.implementation;
 
 import city.norain.slimefun4.SlimefunExtended;
+import city.norain.slimefun4.timings.SQLProfiler;
 import city.norain.slimefun4.utils.LangUtil;
 import com.xzavier0722.mc.plugin.slimefun4.chat.PlayerChatCatcher;
 import com.xzavier0722.mc.plugin.slimefun4.storage.migrator.BlockStorageMigrator;
@@ -192,6 +193,7 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
     // Some other things we need
     private final IntegrationsManager integrations = new IntegrationsManager(this);
     private final SlimefunProfiler profiler = new SlimefunProfiler();
+    private final SQLProfiler sqlProfiler = new SQLProfiler();
     private final GPSNetwork gpsNetwork = new GPSNetwork(this);
 
     // Even more things we need
@@ -457,6 +459,7 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
         }
 
         SlimefunExtended.shutdown();
+        getSQLProfiler().stop();
 
         // Cancel all tasks from this plugin immediately
         Bukkit.getScheduler().cancelTasks(this);
@@ -1034,6 +1037,11 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
     public static @Nonnull SlimefunProfiler getProfiler() {
         validateInstance();
         return instance.profiler;
+    }
+
+    public static @Nonnull SQLProfiler getSQLProfiler() {
+        validateInstance();
+        return instance.sqlProfiler;
     }
 
     /**

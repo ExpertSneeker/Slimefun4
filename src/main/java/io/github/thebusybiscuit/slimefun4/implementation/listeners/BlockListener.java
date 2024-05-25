@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -128,11 +129,11 @@ public class BlockListener implements Listener {
                     } else if (sfItem instanceof NotRotatable notRotatable) {
                         rotation = notRotatable.getRotation();
                     } else if (sfItem instanceof NotCardinallyRotatable notRotatable) {
-                        rotation = notRotatable.getRotation(
-                                e.getPlayer().getLocation().getYaw());
+                        rotation = notRotatable.getRotation(Location.normalizeYaw(
+                                e.getPlayer().getLocation().getYaw()));
                     } else if (sfItem instanceof NotDiagonallyRotatable notRotatable) {
-                        rotation = notRotatable.getRotation(
-                                e.getPlayer().getLocation().getYaw());
+                        rotation = notRotatable.getRotation(Location.normalizeYaw(
+                                e.getPlayer().getLocation().getYaw()));
                     }
 
                     if (rotation != null) {

@@ -84,7 +84,7 @@
             <url>https://repo.walshy.dev/public</url>
         </repository>
         <repository>
-            <!-- Orebfuscator, QuickShop-Reremake -->
+            <!-- Orebfuscator -->
             <id>codemc-repo</id>
             <url>https://repo.codemc.io/repository/maven-public/</url>
         </repository>
@@ -153,10 +153,6 @@
                         <relocation>
                             <pattern>net.guizhanss.guizhanlib</pattern>
                             <shadedPattern>io.github.thebusybiscuit.slimefun4.libraries.guizhanlib</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.zaxxer.hikari</pattern>
-                            <shadedPattern>io.github.thebusybiscuit.slimefun4.libraries.hikari</shadedPattern>
                         </relocation>
                     </relocations>
 
@@ -316,6 +312,30 @@
             <version>42.7.2</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.19.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.19.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>2.19.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.7</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Third party plugin integrations / soft dependencies -->
         <dependency>
@@ -420,19 +440,6 @@
             <groupId>com.github.MilkBowl</groupId>
             <artifactId>VaultAPI</artifactId>
             <version>1.7.1</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <!-- We don't need any of the dependencies -->
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.maxgamer</groupId>
-            <artifactId>QuickShop</artifactId>
-            <version>5.1.0.9</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
