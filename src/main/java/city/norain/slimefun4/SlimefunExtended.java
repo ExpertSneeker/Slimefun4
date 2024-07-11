@@ -1,7 +1,6 @@
 package city.norain.slimefun4;
 
 import city.norain.slimefun4.listener.SlimefunMigrateListener;
-import city.norain.slimefun4.utils.HikariLogFilter;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
@@ -16,7 +15,6 @@ public final class SlimefunExtended {
     private static void checkDebug() {
         if ("true".equals(System.getProperty("slimefun.database.debug"))) {
             databaseDebugMode = true;
-            HikariLogFilter.registerFilter(org.apache.logging.log4j.Level.DEBUG);
         }
     }
 
