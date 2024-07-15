@@ -21,6 +21,7 @@ import io.github.thebusybiscuit.slimefun4.core.commands.SlimefunCommand;
 import io.github.thebusybiscuit.slimefun4.core.config.SlimefunConfigManager;
 import io.github.thebusybiscuit.slimefun4.core.config.SlimefunDatabaseManager;
 import io.github.thebusybiscuit.slimefun4.core.networks.NetworkManager;
+import io.github.thebusybiscuit.slimefun4.core.services.AnalyticsService;
 import io.github.thebusybiscuit.slimefun4.core.services.AutoSavingService;
 import io.github.thebusybiscuit.slimefun4.core.services.BackupService;
 import io.github.thebusybiscuit.slimefun4.core.services.BlockDataService;
@@ -31,6 +32,7 @@ import io.github.thebusybiscuit.slimefun4.core.services.MetricsService;
 import io.github.thebusybiscuit.slimefun4.core.services.MinecraftRecipeService;
 import io.github.thebusybiscuit.slimefun4.core.services.PerWorldSettingsService;
 import io.github.thebusybiscuit.slimefun4.core.services.PermissionsService;
+import io.github.thebusybiscuit.slimefun4.core.services.ThreadService;
 import io.github.thebusybiscuit.slimefun4.core.services.UpdaterService;
 import io.github.thebusybiscuit.slimefun4.core.services.github.GitHubService;
 import io.github.thebusybiscuit.slimefun4.core.services.holograms.HologramsService;
@@ -189,6 +191,8 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
     private final MinecraftRecipeService recipeService = new MinecraftRecipeService(this);
     private final HologramsService hologramsService = new HologramsService(this);
     private final SoundService soundService = new SoundService(this);
+    private final ThreadService threadService = new ThreadService(this);
+    private final AnalyticsService analyticsService = new AnalyticsService(this);
 
     // Some other things we need
     private final IntegrationsManager integrations = new IntegrationsManager(this);
@@ -347,8 +351,9 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
                 config.getBoolean("networks.enable-visualizer"),
                 config.getBoolean("networks.delete-excess-items"));
 
-        // Setting up bStats
+        // Setting up bStats and analytics
         new Thread(metricsService::start, "Slimefun Metrics").start();
+        analyticsService.start();
 
         // Registering all GEO Resources
         logger.log(Level.INFO, "加载矿物资源...");
@@ -575,11 +580,12 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
 
             // Now check the actual Version of Minecraft
             int version = PaperLib.getMinecraftVersion();
+            int patchVersion = PaperLib.getMinecraftPatchVersion();
 
             if (version > 0) {
                 // Check all supported versions of Minecraft
                 for (MinecraftVersion supportedVersion : MinecraftVersion.values()) {
-                    if (supportedVersion.isMinecraftVersion(version)) {
+                    if (supportedVersion.isMinecraftVersion(version, patchVersion)) {
                         minecraftVersion = supportedVersion;
                         return false;
                     }
@@ -968,6 +974,17 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
     }
 
     /**
+     * This method returns the {@link AnalyticsService} of Slimefun.
+     * It is used to handle sending analytic information.
+     *
+     * @return The {@link AnalyticsService} for Slimefun
+     */
+    public static @Nonnull AnalyticsService getAnalyticsService() {
+        validateInstance();
+        return instance.analyticsService;
+    }
+
+    /**
      * This method returns the {@link GitHubService} of Slimefun.
      * It is used to retrieve data from GitHub repositories.
      *
@@ -1155,5 +1172,15 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
     public static @Nonnull PlayerChatCatcher getChatCatcher() {
         validateInstance();
         return instance.chatCatcher;
+    }
+
+    /**
+     * This method returns the {@link ThreadService} of Slimefun.
+     * <b>Do not use this if you're an addon. Please make your own {@link ThreadService}.</b>
+     *
+     * @return The {@link ThreadService} for Slimefun
+     */
+    public static @Nonnull ThreadService getThreadService() {
+        return instance().threadService;
     }
 }
