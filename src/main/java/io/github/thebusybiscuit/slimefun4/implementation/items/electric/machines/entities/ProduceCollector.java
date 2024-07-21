@@ -155,7 +155,7 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
         // 海草 鳞甲
         ItemStack seaGrass = new ItemStack(Material.SEAGRASS);
         seaGrass.setAmount(10);
-        addProduce(new AnimalProduce(seaGrass, new ItemStack(Material.SCUTE), n -> {
+        addProduce(new AnimalProduce(seaGrass, new ItemStack(Material.TURTLE_SCUTE), n -> {
             if (n instanceof Turtle turtle) {
                 return turtle.isAdult();
             } else {
@@ -298,9 +298,9 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
         displayRecipes.add(wheatSeedsChicken);
         displayRecipes.add(new ItemStack(Material.CHICKEN));
 
-        ItemStack carrotPig = new CustomItemStack(Material.CARROT, null, "&f需要 &b猪 &f在附近");
-        carrotPig.setAmount(10);
-        displayRecipes.add(carrotPig);
+        ItemStack beetrootPig = new CustomItemStack(Material.BEETROOT, null, "&f需要 &b猪 &f在附近");
+        beetrootPig.setAmount(10);
+        displayRecipes.add(beetrootPig);
         displayRecipes.add(new ItemStack(Material.PORKCHOP));
 
         ItemStack dandelion = new CustomItemStack(Material.DANDELION, null, "&f需要 &b兔子 &f在附近");
@@ -321,7 +321,7 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
         ItemStack seaGrass = new CustomItemStack(Material.SEAGRASS, null, "&f需要 &b海龟 &f在附近");
         seaGrass.setAmount(10);
         displayRecipes.add(seaGrass);
-        displayRecipes.add(new ItemStack(Material.SCUTE));
+        displayRecipes.add(new ItemStack(Material.TURTLE_SCUTE));
 
         ItemStack rottenFlesh = new CustomItemStack(Material.ROTTEN_FLESH, null, "&f需要 &b马 &f在附近");
         rottenFlesh.setAmount(4);
