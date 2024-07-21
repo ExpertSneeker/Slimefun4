@@ -47,7 +47,11 @@ public class SlimefunItemStack extends ItemStack {
     private String texture = null;
 
     public SlimefunItemStack(@Nonnull String id, @Nonnull ItemStack item) {
-        super(item);
+        super(item.getType(), item.getAmount());
+
+        if (item.hasItemMeta()) {
+            setItemMeta(item.getItemMeta());
+        }
 
         Validate.notNull(id, "The Item id must never be null!");
         Validate.isTrue(
