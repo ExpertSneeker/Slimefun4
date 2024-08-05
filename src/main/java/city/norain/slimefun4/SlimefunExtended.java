@@ -1,5 +1,6 @@
 package city.norain.slimefun4;
 
+import city.norain.slimefun4.compatibillty.VersionedEvent;
 import city.norain.slimefun4.listener.SlimefunMigrateListener;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.util.logging.Level;
@@ -47,7 +48,7 @@ public final class SlimefunExtended {
         }
     }
 
-    public static void register(@Nonnull Slimefun sf) {
+    public static void init(@Nonnull Slimefun sf) {
         EnvironmentChecker.scheduleSlimeGlueCheck(sf);
 
         checkDebug();
@@ -55,6 +56,8 @@ public final class SlimefunExtended {
         VaultIntegration.register(sf);
 
         migrateListener.register(sf);
+
+        VersionedEvent.init();
     }
 
     public static void shutdown() {

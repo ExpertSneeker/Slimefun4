@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.tools;
 
+import city.norain.slimefun4.compatibillty.VersionedEvent;
 import com.xzavier0722.mc.plugin.slimefun4.storage.util.StorageCacheUtils;
 import dev.lone.itemsadder.api.CustomBlock;
 import io.github.bakedlibs.dough.protection.Interaction;
@@ -68,6 +69,7 @@ public class ExplosiveTool extends SimpleSlimefunItem<ToolUseHandler> implements
                 SoundEffect.EXPLOSIVE_TOOL_EXPLODE_SOUND.playAt(b);
 
                 List<Block> blocks = findBlocks(b);
+
                 breakBlocks(e, p, tool, b, blocks, drops);
             }
         };
@@ -79,7 +81,7 @@ public class ExplosiveTool extends SimpleSlimefunItem<ToolUseHandler> implements
         List<Block> blocksToDestroy = new ArrayList<>();
 
         if (callExplosionEvent.getValue()) {
-            BlockExplodeEvent blockExplodeEvent = new BlockExplodeEvent(b, blocks, 0);
+            BlockExplodeEvent blockExplodeEvent = VersionedEvent.newBlockExplodeEvent(b, blocks, 0);
             Bukkit.getServer().getPluginManager().callEvent(blockExplodeEvent);
 
             if (!blockExplodeEvent.isCancelled()) {
@@ -171,79 +173,81 @@ public class ExplosiveTool extends SimpleSlimefunItem<ToolUseHandler> implements
         block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, material);
         Location blockLocation = block.getLocation();
 
-        Optional<SlimefunItem> optionalBlockSfItem = Optional.ofNullable(StorageCacheUtils.getSfItem(blockLocation));
+        Optional<SlimefunItem> blockItem = Optional.ofNullable(StorageCacheUtils.getSfItem(blockLocation));
 
-        /*
-         * 修复: https://github.com/SlimefunGuguProject/Slimefun4/issues/853
-         *
-         * 该问题源于 ExoticGarden MagicalEssence/ExoticGardenFruit useVanillaBlockBreaking 为 true，
-         * 将调用 breakNaturally 方法而非将其作为 SlimefunItem 进行处理。
-         *
-         * 此前将 blocks 进行排序，以确保头颅为最先处理的对象，检查头颅的 Y - 1 方块是否为叶子，
-         * 若为叶子则尝试获取该处的 SlimefunItem，若能获取得到则此处应为异域花园植物，将叶子处直接设置为 AIR 并移除该处 Slimefun 方块数据。
-         */
         AtomicBoolean isUseVanillaBlockBreaking = new AtomicBoolean(true);
 
-        if (Bukkit.getPluginManager().isPluginEnabled("ExoticGarden")
-                && block.getType().equals(Material.PLAYER_HEAD)) {
-            Location leavesLocation = blockLocation.clone();
-            leavesLocation.setY(leavesLocation.getY() - 1);
+        blockItem.ifPresentOrElse(
+                sfItem -> {
+                    /*
+                     * 修复: https://github.com/SlimefunGuguProject/Slimefun4/issues/853
+                     *
+                     * 该问题源于 ExoticGarden MagicalEssence/ExoticGardenFruit useVanillaBlockBreaking 为 true，
+                     * 将调用 breakNaturally 方法而非将其作为 SlimefunItem 进行处理。
+                     *
+                     * 此前将 blocks 进行排序，以确保头颅为最先处理的对象，检查头颅的 Y - 1 方块是否为叶子，
+                     * 若为叶子则尝试获取该处的 SlimefunItem，若能获取得到则此处应为异域花园植物，将叶子处直接设置为 AIR 并移除该处 Slimefun 方块数据。
+                     */
+                    if (Bukkit.getPluginManager().isPluginEnabled("ExoticGarden")
+                            && block.getType().equals(Material.PLAYER_HEAD)) {
+                        Location leavesLocation = blockLocation.clone();
+                        leavesLocation.setY(leavesLocation.getY() - 1);
 
-            Block leaveBlock = leavesLocation.getBlock();
-            Material leaveBlockType = leaveBlock.getType();
+                        Block leaveBlock = leavesLocation.getBlock();
+                        Material leaveBlockType = leaveBlock.getType();
 
-            if (Tag.LEAVES.isTagged(leaveBlockType)) {
-                Optional<SlimefunItem> optionalLeavesBlockSfItem =
-                        Optional.ofNullable(StorageCacheUtils.getSfItem(leavesLocation));
+                        if (Tag.LEAVES.isTagged(leaveBlockType)) {
+                            Optional<SlimefunItem> optionalLeavesBlockSfItem =
+                                    Optional.ofNullable(StorageCacheUtils.getSfItem(leavesLocation));
 
-                optionalBlockSfItem.ifPresent(blockSfItem -> optionalLeavesBlockSfItem.ifPresent(leavesSfItem -> {
-                    Collection<ItemStack> sfItemDrops = blockSfItem.getDrops();
-                    Collection<ItemStack> leavesSfItemDrops = leavesSfItem.getDrops();
+                            optionalLeavesBlockSfItem.ifPresent(leavesSfItem -> {
+                                Collection<ItemStack> sfItemDrops = sfItem.getDrops();
+                                Collection<ItemStack> leavesSfItemDrops = leavesSfItem.getDrops();
 
-                    if (Arrays.equals(sfItemDrops.toArray(), leavesSfItemDrops.toArray())) {
-                        leaveBlock.setType(Material.AIR);
-                        Slimefun.getDatabaseManager().getBlockDataController().removeBlock(leavesLocation);
+                                if (Arrays.equals(sfItemDrops.toArray(), leavesSfItemDrops.toArray())) {
+                                    leaveBlock.setType(Material.AIR);
+                                    Slimefun.getDatabaseManager()
+                                            .getBlockDataController()
+                                            .removeBlock(leavesLocation);
 
-                        isUseVanillaBlockBreaking.set(false);
+                                    isUseVanillaBlockBreaking.set(false);
+                                }
+                            });
+                        }
                     }
-                }));
-            }
-        }
 
-        optionalBlockSfItem.ifPresent(sfItem -> {
-            if (isUseVanillaBlockBreaking.get()) {
-                isUseVanillaBlockBreaking.set(sfItem.useVanillaBlockBreaking());
-            }
+                    if (isUseVanillaBlockBreaking.get()) {
+                        isUseVanillaBlockBreaking.set(sfItem.useVanillaBlockBreaking());
+                    }
 
-            if (isUseVanillaBlockBreaking.get()) {
-                block.breakNaturally(item);
-            } else {
-                /*
-                 * Fixes #2989
-                 * We create a dummy here to pass onto the BlockBreakHandler.
-                 * This will set the correct block context.
-                 */
-                BlockBreakEvent dummyEvent = new BlockBreakEvent(block, event.getPlayer());
+                    if (isUseVanillaBlockBreaking.get()) {
+                        block.breakNaturally(item);
+                    } else {
+                        /*
+                         * Fixes #2989
+                         * We create a dummy here to pass onto the BlockBreakHandler.
+                         * This will set the correct block context.
+                         */
+                        BlockBreakEvent dummyEvent = new BlockBreakEvent(block, event.getPlayer());
 
-                /*
-                 * Fixes #3036 and handling in general.
-                 * Call the BlockBreakHandler if the block has one to allow for proper handling.
-                 */
-                sfItem.callItemHandler(
-                        BlockBreakHandler.class, handler -> handler.onPlayerBreak(dummyEvent, item, drops));
+                        /*
+                         * Fixes #3036 and handling in general.
+                         * Call the BlockBreakHandler if the block has one to allow for proper handling.
+                         */
+                        sfItem.callItemHandler(
+                                BlockBreakHandler.class, handler -> handler.onPlayerBreak(dummyEvent, item, drops));
 
-                // Make sure the event wasn't cancelled by the BlockBreakHandler.
-                if (!dummyEvent.isCancelled()) {
-                    drops.addAll(sfItem.getDrops(player));
-                    block.setType(Material.AIR);
-                    Slimefun.getDatabaseManager().getBlockDataController().removeBlock(blockLocation);
-                }
-            }
-        });
-
-        if (optionalBlockSfItem.isEmpty()) {
-            block.breakNaturally(item);
-        }
+                        // Make sure the event wasn't cancelled by the BlockBreakHandler.
+                        if (!dummyEvent.isCancelled()) {
+                            drops.addAll(sfItem.getDrops(player));
+                            block.setType(Material.AIR);
+                            Slimefun.getDatabaseManager()
+                                    .getBlockDataController()
+                                    .removeBlock(blockLocation);
+                        }
+                    }
+                },
+                () -> block.breakNaturally(item));
 
         damageItem(player, item);
     }

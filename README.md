@@ -72,6 +72,12 @@ Slimefun 4 可以在[鬼斩构建站](https://builds.guizhanss.com)页面中**�
 
 **! 建议你使用最新的测试版，可以获得最新的内容更新和 Bug 修复！**
 
+## :computer: 如何编译
+要编译 Slimefun4，你必须先安装 [Git](https://git-scm.com/)
+然后 `git clone https://github.com/SlimefunGuguProject/Slimefun4.git`
+最后如果你是 Windows 系统: `.\mvnw.cmd -s .mvn/settings.xml package`
+如果你是类 Unix 系统: `.\mvnw -s .mvn/settings.xml package`
+
 ## :framed_picture: 截图
 
 那么，Slimefun 看起来是怎样的呢？<br>

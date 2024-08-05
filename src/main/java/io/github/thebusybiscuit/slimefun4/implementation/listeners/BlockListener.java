@@ -236,7 +236,7 @@ public class BlockListener implements Listener {
             dropItems(e, drops);
 
             // Checks for vanilla sensitive blocks everywhere
-            checkForSensitiveBlocks(e.getBlock(), 0, e.isDropItems());
+            // checkForSensitiveBlocks(e.getBlock(), 0, e.isDropItems());
         }
     }
 
