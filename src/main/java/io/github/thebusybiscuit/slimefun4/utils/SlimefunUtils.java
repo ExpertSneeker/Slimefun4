@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.utils;
 
+import city.norain.slimefun4.SlimefunExtended;
 import io.github.bakedlibs.dough.common.CommonPatterns;
 import io.github.bakedlibs.dough.items.ItemMetaSnapshot;
 import io.github.bakedlibs.dough.skins.PlayerHead;
@@ -501,8 +502,20 @@ public final class SlimefunUtils {
             }
         }
 
-        if (itemMeta instanceof PotionMeta && sfitemMeta instanceof PotionMeta) {
-            return ((PotionMeta) itemMeta).getBasePotionType().equals(((PotionMeta) sfitemMeta).getBasePotionType());
+        if (itemMeta instanceof PotionMeta potionMeta && sfitemMeta instanceof PotionMeta sfPotionMeta) {
+            if (Slimefun.getMinecraftVersion().isAtLeast(MinecraftVersion.MINECRAFT_1_20_5)) {
+                if (!potionMeta.hasBasePotionType() && !sfPotionMeta.hasBasePotionType()) {
+                    return true;
+                }
+
+                return potionMeta.hasBasePotionType()
+                        && sfPotionMeta.hasBasePotionType()
+                        && potionMeta.getBasePotionType().equals(sfPotionMeta.getBasePotionType());
+            } else if (SlimefunExtended.getMinecraftVersion().isAtLeast(1, 20, 2)) {
+                return potionMeta.getBasePotionType().equals(sfPotionMeta.getBasePotionType());
+            } else {
+                return potionMeta.getBasePotionData().equals(sfPotionMeta.getBasePotionData());
+            }
         }
 
         Debug.log(TestCase.CARGO_INPUT_TESTING, "  All meta checked.");

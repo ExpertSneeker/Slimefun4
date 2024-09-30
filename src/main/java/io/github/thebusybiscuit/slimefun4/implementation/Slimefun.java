@@ -88,6 +88,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.Caul
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.CraftingTableListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.GrindstoneListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.SmithingTableListener;
+import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.VanillaCrafterListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.entity.BeeListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.entity.EntityInteractionListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.entity.FireworksListener;
@@ -180,7 +181,7 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
     private final CustomItemDataService itemDataService = new CustomItemDataService(this, "slimefun_item");
     private final BlockDataService blockDataService = new BlockDataService(this, "slimefun_block");
     private final CustomTextureService textureService = new CustomTextureService(new Config(this, "item-models.yml"));
-    private final GitHubService gitHubService = new GitHubService("StarWishsama/Slimefun4");
+    private final GitHubService gitHubService = new GitHubService("SlimefunGuguProject/Slimefun4");
     private final UpdaterService updaterService =
             new UpdaterService(this, getDescription().getVersion(), getFile());
     private final MetricsService metricsService = new MetricsService(this);
@@ -448,7 +449,7 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
 
     @Override
     public String getBugTrackerURL() {
-        return "https://github.com/StarWishsama/Slimefun4/issues";
+        return "https://github.com/SlimefunGuguProject/Slimefun4/issues";
     }
 
     @Override
@@ -708,6 +709,7 @@ public final class Slimefun extends JavaPlugin implements SlimefunAddon, ICompat
         new BeeWingsListener(this, (BeeWings) SlimefunItems.BEE_WINGS.getItem());
         new PiglinListener(this);
         new SmithingTableListener(this);
+        new VanillaCrafterListener(this);
         new JoinListener(this);
 
         // Item-specific Listeners

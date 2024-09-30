@@ -2,6 +2,8 @@ package city.norain.slimefun4;
 
 import city.norain.slimefun4.compatibillty.VersionedEvent;
 import city.norain.slimefun4.listener.SlimefunMigrateListener;
+import io.github.bakedlibs.dough.versions.MinecraftVersion;
+import io.github.bakedlibs.dough.versions.UnknownServerVersionException;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
@@ -13,6 +15,9 @@ public final class SlimefunExtended {
     @Getter
     private static boolean databaseDebugMode = false;
 
+    @Getter
+    private static MinecraftVersion minecraftVersion;
+
     private static void checkDebug() {
         if ("true".equals(System.getProperty("slimefun.database.debug"))) {
             databaseDebugMode = true;
@@ -20,6 +25,13 @@ public final class SlimefunExtended {
     }
 
     public static boolean checkEnvironment(@Nonnull Slimefun sf) {
+        try {
+            minecraftVersion = MinecraftVersion.of(sf.getServer());
+        } catch (UnknownServerVersionException e) {
+            sf.getLogger().log(Level.WARNING, "无法识别你正在使用的服务端版本 :(");
+            return false;
+        }
+
         if (EnvironmentChecker.checkHybridServer()) {
             sf.getLogger().log(Level.WARNING, "#######################################################");
             sf.getLogger().log(Level.WARNING, "");
