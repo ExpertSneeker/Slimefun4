@@ -14,13 +14,18 @@ import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlC
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_PLAYER_UUID;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_RESEARCH_KEY;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_SLIMEFUN_ID;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_TABLE_VERSION;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_UNIVERSAL_TRAITS;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_UNIVERSAL_UUID;
 
+import com.xzavier0722.mc.plugin.slimefun4.storage.adapter.IDataSourceAdapter;
 import com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlCommonAdapter;
 import com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlUtils;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.DataScope;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.DataType;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordKey;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordSet;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.util.List;
 
 public class MysqlAdapter extends SqlCommonAdapter<MysqlConfig> {
@@ -39,9 +44,15 @@ public class MysqlAdapter extends SqlCommonAdapter<MysqlConfig> {
                 blockDataTable = SqlUtils.mapTable(DataScope.BLOCK_DATA, config.tablePrefix());
                 blockInvTable = SqlUtils.mapTable(DataScope.BLOCK_INVENTORY, config.tablePrefix());
                 chunkDataTable = SqlUtils.mapTable(DataScope.CHUNK_DATA, config.tablePrefix());
+                universalInvTable = SqlUtils.mapTable(DataScope.UNIVERSAL_INVENTORY, config.tablePrefix());
+                universalDataTable = SqlUtils.mapTable(DataScope.UNIVERSAL_DATA, config.tablePrefix());
+                universalRecordTable = SqlUtils.mapTable(DataScope.UNIVERSAL_RECORD, config.tablePrefix());
                 createBlockStorageTables();
             }
         }
+
+        tableInformationTable = SqlUtils.mapTable(DataScope.TABLE_INFORMATION, config.tablePrefix());
+        createTableInformationTable();
     }
 
     @Override
@@ -124,6 +135,9 @@ public class MysqlAdapter extends SqlCommonAdapter<MysqlConfig> {
         createBlockDataTable();
         createBlockInvTable();
         createChunkDataTable();
+        createUniversalInventoryTable();
+        createUniversalRecordTable();
+        createUniversalDataTable();
     }
 
     private void createProfileTable() {
@@ -311,5 +325,81 @@ public class MysqlAdapter extends SqlCommonAdapter<MysqlConfig> {
                 + FIELD_INVENTORY_SLOT
                 + ")"
                 + ");");
+    }
+
+    private void createUniversalInventoryTable() {
+        executeSql("CREATE TABLE IF NOT EXISTS "
+                + universalInvTable
+                + "("
+                + FIELD_UNIVERSAL_UUID
+                + " CHAR(64) NOT NULL, "
+                + FIELD_INVENTORY_SLOT
+                + " TINYINT UNSIGNED NOT NULL, "
+                + FIELD_INVENTORY_ITEM
+                + " CHAR(64) NOT NULL,"
+                + "PRIMARY KEY ("
+                + FIELD_UNIVERSAL_UUID
+                + ", "
+                + FIELD_INVENTORY_SLOT
+                + ")"
+                + ");");
+    }
+
+    private void createUniversalRecordTable() {
+        executeSql("CREATE TABLE IF NOT EXISTS "
+                + universalRecordTable
+                + "("
+                + FIELD_UNIVERSAL_UUID
+                + " CHAR(64) NOT NULL, "
+                + FIELD_SLIMEFUN_ID
+                + " CHAR(64) NOT NULL, "
+                + FIELD_UNIVERSAL_TRAITS
+                + " CHAR(64) NOT NULL, "
+                + "PRIMARY KEY ("
+                + FIELD_UNIVERSAL_UUID
+                + ")"
+                + ");");
+    }
+
+    private void createUniversalDataTable() {
+        executeSql("CREATE TABLE IF NOT EXISTS "
+                + universalDataTable
+                + "("
+                + FIELD_UNIVERSAL_UUID
+                + " CHAR(64) NOT NULL, "
+                + FIELD_DATA_KEY
+                + " CHAR(64) NOT NULL, "
+                + FIELD_DATA_VALUE
+                + " TEXT NOT NULL, "
+                + "FOREIGN KEY ("
+                + FIELD_UNIVERSAL_UUID
+                + ") "
+                + "REFERENCES "
+                + universalRecordTable
+                + "("
+                + FIELD_UNIVERSAL_UUID
+                + ") "
+                + "ON UPDATE CASCADE ON DELETE CASCADE, "
+                + "PRIMARY KEY ("
+                + FIELD_UNIVERSAL_UUID
+                + ", "
+                + FIELD_DATA_KEY
+                + ")"
+                + ");");
+    }
+
+    private void createTableInformationTable() {
+        executeSql("CREATE TABLE IF NOT EXISTS "
+                + tableInformationTable
+                + "("
+                + FIELD_TABLE_VERSION
+                + " INT UNIQUE NOT NULL DEFAULT '0'"
+                + ");");
+
+        if (Slimefun.isNewlyInstalled()) {
+            executeSql("INSERT INTO " + tableInformationTable + " (" + FIELD_TABLE_VERSION + ") SELECT '"
+                    + IDataSourceAdapter.DATABASE_VERSION + "' WHERE NOT EXISTS (SELECT 1 FROM " + tableInformationTable
+                    + ")");
+        }
     }
 }
