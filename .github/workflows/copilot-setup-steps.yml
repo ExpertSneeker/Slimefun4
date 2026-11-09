@@ -32,7 +32,9 @@ jobs:
           java-version: ${{ vars.JAVA_CI_VERSION || 21 }}
           java-package: jdk
           architecture: x64
-          cache: maven
+          cache: gradle
 
       - name: Download Dependencies
-        run: mvn -B verify --errors
+        run: |
+          chmod +x gradlew
+          ./gradlew build -x test --no-daemon
