@@ -4,22 +4,22 @@ import city.norain.slimefun4.api.menu.UniversalMenu;
 import com.xzavier0722.mc.plugin.slimefun4.storage.controller.attributes.UniversalDataTrait;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.bukkit.inventory.ItemStack;
 
+@Slf4j
 @Getter
 public class SlimefunUniversalData extends ASlimefunDataContainer {
     @Setter
     private volatile UniversalMenu menu;
-
-    @Setter
-    private volatile boolean pendingRemove = false;
 
     private final Set<UniversalDataTrait> traits = new HashSet<>();
 
@@ -29,15 +29,24 @@ public class SlimefunUniversalData extends ASlimefunDataContainer {
     }
 
     @ParametersAreNonnullByDefault
-    public void setData(String key, String val) {
-        checkData();
+    SlimefunUniversalData(UUID uuid, String sfId, Set<UniversalDataTrait> traits) {
+        super(uuid.toString(), sfId);
+        this.traits.addAll(traits);
+    }
 
+    @ParametersAreNonnullByDefault
+    @SneakyThrows
+    public void setData(String key, String val) {
         if (UniversalDataTrait.isReservedKey(key)) {
-            Slimefun.logger().log(Level.WARNING, "警告: 有附属正在尝试修改受保护的方块数据, 已取消更改");
-            return;
+            throw new IllegalAccessException("不能修改当前受保护的方块数据键值对");
         }
 
-        setCacheInternal(key, val, true);
+        super.setData(key, val);
+    }
+
+    @Override
+    @ParametersAreNonnullByDefault
+    public void scheduleUpdateData(String key) {
         Slimefun.getDatabaseManager().getBlockDataController().scheduleDelayedUniversalDataUpdate(this, key);
     }
 
@@ -45,18 +54,12 @@ public class SlimefunUniversalData extends ASlimefunDataContainer {
     protected void setTraitData(UniversalDataTrait trait, String val) {
         checkData();
 
-        if (!trait.getReservedKey().isBlank()) {
+        if (!trait.getReservedKey().isEmpty()) {
             setCacheInternal(trait.getReservedKey(), val, true);
+
             Slimefun.getDatabaseManager()
                     .getBlockDataController()
                     .scheduleDelayedUniversalDataUpdate(this, trait.getReservedKey());
-        }
-    }
-
-    @ParametersAreNonnullByDefault
-    public void removeData(String key) {
-        if (removeCacheInternal(key) != null || !isDataLoaded()) {
-            Slimefun.getDatabaseManager().getBlockDataController().scheduleDelayedUniversalDataUpdate(this, key);
         }
     }
 
@@ -81,6 +84,10 @@ public class SlimefunUniversalData extends ASlimefunDataContainer {
         return UUID.fromString(getKey());
     }
 
+    public void addTrait(UniversalDataTrait... trait) {
+        traits.addAll(List.of(trait));
+    }
+
     public boolean hasTrait(UniversalDataTrait trait) {
         return traits.contains(trait);
     }
@@ -88,6 +95,6 @@ public class SlimefunUniversalData extends ASlimefunDataContainer {
     @Override
     public String toString() {
         return "SlimefunUniversalData [uuid= " + getUUID() + ", sfId=" + getSfId() + ", isPendingRemove="
-                + pendingRemove + "]";
+                + isPendingRemove() + "]";
     }
 }

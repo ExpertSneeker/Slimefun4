@@ -1,13 +1,14 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.enchanting;
 
-import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoEnchanterProcessEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AutoEnchantEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
+import io.github.thebusybiscuit.slimefun4.api.items.virtual.VirtualItemHandler.InventoryContext;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -54,7 +55,9 @@ public class AutoEnchanter extends AbstractEnchantmentMachine {
     @Override
     protected MachineRecipe findNextRecipe(BlockMenu menu) {
         for (int slot : getInputSlots()) {
-            ItemStack item = menu.getItemInSlot(slot == getInputSlots()[0] ? getInputSlots()[1] : getInputSlots()[0]);
+            // Other item
+            int otherSlot = slot == getInputSlots()[0] ? getInputSlots()[1] : getInputSlots()[0];
+            ItemStack item = menu.getItemInSlot(otherSlot);
 
             // Check if the item is enchantable
             if (!isEnchantable(item)) {
@@ -62,10 +65,19 @@ public class AutoEnchanter extends AbstractEnchantmentMachine {
             }
 
             // Call an event so other Plugins can modify it.
-            AutoEnchantEvent event = new AutoEnchantEvent(item);
+            AutoEnchantEvent event = new AutoEnchantEvent(item, menu.getBlock());
             Bukkit.getPluginManager().callEvent(event);
 
             if (event.isCancelled()) {
+                if (Slimefun.getItemStackService()
+                        .fitAll(
+                                menu.toInventory(),
+                                new ItemStack[] {item},
+                                InventoryContext.MACHINE_OUTPUT,
+                                getOutputSlots())) {
+                    menu.replaceExistingItem(otherSlot, null);
+                    menu.pushItem(item, getOutputSlots());
+                }
                 return null;
             }
 
@@ -143,7 +155,12 @@ public class AutoEnchanter extends AbstractEnchantmentMachine {
                     new ItemStack[] {target, enchantedBook},
                     new ItemStack[] {enchantedItem, new ItemStack(Material.BOOK)});
 
-            if (!InvUtils.fitAll(menu.toInventory(), recipe.getOutput(), getOutputSlots())) {
+            if (!Slimefun.getItemStackService()
+                    .fitAll(
+                            menu.toInventory(),
+                            recipe.getOutput(),
+                            InventoryContext.MACHINE_OUTPUT,
+                            getOutputSlots())) {
                 return null;
             }
 

@@ -11,6 +11,16 @@ import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * {@link SlimefunBlockData} 是 Slimefun 中机器等方块类物品的数据存储容器。
+ * <br/>
+ * 它包含了方块对应的键值容器、位置信息和菜单，
+ * 是 Slimefun 中常用的方块数据存储类。
+ *
+ * @author Xzavier0722
+ *
+ * @see ASlimefunDataContainer
+ */
 @ToString
 public class SlimefunBlockData extends ASlimefunDataContainer {
     private final Location location;
@@ -38,20 +48,6 @@ public class SlimefunBlockData extends ASlimefunDataContainer {
         return super.getSfId();
     }
 
-    @ParametersAreNonnullByDefault
-    public void setData(String key, String val) {
-        checkData();
-        setCacheInternal(key, val, true);
-        Slimefun.getDatabaseManager().getBlockDataController().scheduleDelayedBlockDataUpdate(this, key);
-    }
-
-    @ParametersAreNonnullByDefault
-    public void removeData(String key) {
-        if (removeCacheInternal(key) != null || !isDataLoaded()) {
-            Slimefun.getDatabaseManager().getBlockDataController().scheduleDelayedBlockDataUpdate(this, key);
-        }
-    }
-
     @ParametersAreNullableByDefault
     void setBlockMenu(BlockMenu blockMenu) {
         menu = blockMenu;
@@ -76,5 +72,11 @@ public class SlimefunBlockData extends ASlimefunDataContainer {
         }
 
         return re;
+    }
+
+    @Override
+    @ParametersAreNonnullByDefault
+    public void scheduleUpdateData(String key) {
+        Slimefun.getDatabaseManager().getBlockDataController().scheduleDelayedBlockDataUpdate(this, key);
     }
 }

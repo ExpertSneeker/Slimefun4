@@ -15,10 +15,9 @@ Looking for English (or Original) Version? [**Click here**](https://github.com/S
 加入爱发电订阅计划可抢先获得最新版本的 Slimefun 构建，以及是优先技术支持。
 注意：**非年度计划用户**可在距上次公开仓库更新后 15 天获取自动同步的源代码，并非闭源。我们十分遵循 GPLv3 协议 :)
 
-了解订阅计划：[订阅计划](https://builds.guizhanss.com/sf-subscription)
+了解订阅计划：[订阅计划](https://resources.guizhanss.com/tools/slimefun-insider)
 
 ![目前版本](https://img.shields.io/github/v/release/SlimefunGuguProject/Slimefun4?include_prereleases)
-![构建状态](https://builds.guizhanss.com/SlimefunGuguProject/Slimefun4/master/badge.svg)
 [![Issues](https://img.shields.io/github/issues/SlimefunGuguProject/Slimefun4.svg?style=popout)](https://github.com/SlimefunGuguProject/Slimefun4/issues)
 ![下载数](https://img.shields.io/github/downloads/SlimefunGuguProject/Slimefun4/total)
 
@@ -53,30 +52,98 @@ Slimefun 让每个玩家可以自行决定在魔法或科技方面发展。
 
 (可以查看: [如何安装 Slimefun](https://slimefun-wiki.guizhanss.cn/Installing-Slimefun))
 
-Slimefun 4 可以在[鬼斩构建站](https://builds.guizhanss.com)页面中**免费下载**。
+Slimefun 4 可以在[鬼斩资源站](https://resources.guizhanss.com/plugin/Slimefun4)页面中**免费下载**。
 
 以下是两种版本的区别:
 
-|                      | 测试版 (最新更新)                                                                         | "稳定版"                                                                                 |
-|----------------------|------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| **支持的 Minecraft 版本** | :video_game: 1.17.X - 1.21.2                                                       | :video_game: 1.17.X - 1.21.2                                                          |
-| **Java 版本**          | :computer: **Java 17+**                                                            | :computer: **Java 17+**                                                               |
-| **自动更新系统**           | :heavy_check_mark:                                                                 | :x:                                                                                   |
-| **频繁更新**             | :heavy_check_mark:                                                                 | :x:                                                                                   |
-| **享有最新内容**           | :heavy_check_mark:                                                                 | :x:                                                                                   |
-| **Discord 支持**       | :heavy_check_mark:                                                                 | :x:                                                                                   |
-| **Bug 反馈**           | :heavy_check_mark:                                                                 | :x:                                                                                   |
-| **在发布前进行测试**         | :x:                                                                                | :heavy_check_mark:                                                                    |
-| **有无更新日志**           | :x:                                                                                | :memo: **[更新日志(英文)](https://github.com/Slimefun/Slimefun4/blob/master/CHANGELOG.md)** |
-| **下载链接**             | :package: **[下载 最新版](https://builds.guizhanss.com/SlimefunGuguProject/Slimefun4/master)** | :package: **[下载 "稳定版"](https://builds.guizhanss.com/SlimefunGuguProject/Slimefun4/release)** |
+|                      | 测试版 (最新更新)                                                                                | "稳定版"                                                                                 |
+|----------------------|-------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| **支持的 Minecraft 版本** | :video_game: 1.18.X - 26.3.X                                                              | :video_game: 1.18.X - 26.2.X                                                          |
+| **Java 版本**          | :computer: **Java 21+**                                                                   | :computer: **Java 21+**                                                               |
+| **自动更新系统**           | :heavy_check_mark:                                                                        | :x:                                                                                   |
+| **频繁更新**             | :heavy_check_mark:                                                                        | :x:                                                                                   |
+| **享有最新内容**           | :heavy_check_mark:                                                                        | :x:                                                                                   |
+| **Discord 支持**       | :heavy_check_mark:                                                                        | :x:                                                                                   |
+| **Bug 反馈**           | :heavy_check_mark:                                                                        | :x:                                                                                   |
+| **在发布前进行测试**         | :x:                                                                                       | :heavy_check_mark:                                                                    |
+| **有无更新日志**           | :x:                                                                                       | :memo: **[更新日志(英文)](https://github.com/Slimefun/Slimefun4/blob/master/CHANGELOG.md)** |
+| **下载链接**             | :package: **[下载 最新版](https://resources.guizhanss.com/project/Slimefun4/version/latest?channel=master)** | :package: **[下载 "稳定版"](https://resources.guizhanss.com/project/Slimefun4/version/latest?channel=release)** |
 
 **! 建议你使用最新的测试版，可以获得最新的内容更新和 Bug 修复！**
 
+## :computer: (开发) 添加依赖
+
+首先添加我们的私有仓库：
+
+Maven:
+
+```xml
+<repository>
+    <id>gugu-maven-repo</id>
+    <url>https://maven.norain.city/releases</url>
+</repository>
+
+```
+
+开发版:
+```xml
+<repository>
+    <id>gugu-maven-repo</id>
+    <url>https://maven.norain.city/snapshots</url>
+    <snapshots>
+        <enabled>true</enabled>
+    </snapshots>
+</repository>
+```
+
+Gradle: 在 `build.gradle.kts` 中添加以下内容:
+
+```kotlin
+repositories {
+    maven {
+        url "https://maven.norain.city/releases"
+    }
+}
+```
+
+对于开发版：
+```kotlin
+repositories {
+    maven {
+        url "https://maven.norain.city/snapshots"
+    }
+}
+```
+
+接下来添加 Slimefun 4 作为依赖:
+Maven:
+
+```xml
+<dependency>
+    <groupId>com.github.SlimefunGuguProject</groupId>
+    <artifactId>Slimefun4</artifactId>
+    <version>DEV-SNAPSHOT</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+Gradle:
+
+```kotlin
+dependencies {
+    compileOnly("com.github.SlimefunGuguProject:Slimefun4:DEV-SNAPSHOT")
+}
+```
+
+
 ## :computer: 如何编译
 要编译 Slimefun4，你必须先安装 [Git](https://git-scm.com/)
-然后 `git clone https://github.com/SlimefunGuguProject/Slimefun4.git`
-最后如果你是 Windows 系统: `.\mvnw.cmd package`
-如果你是类 Unix 系统: `.\mvnw package`
+
+然后运行 `git clone https://github.com/SlimefunGuguProject/Slimefun4.git` 克隆仓库到本地。
+
+最后进行编译：
+- 如果你是 Windows 系统: `./gradlew.bat build`
+- 如果你是类 Unix 系统: `./gradlew build`
 
 ## :framed_picture: 截图
 

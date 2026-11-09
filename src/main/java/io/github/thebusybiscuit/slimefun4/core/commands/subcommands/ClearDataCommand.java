@@ -38,6 +38,8 @@ public class ClearDataCommand extends SubCommand {
                         Slimefun.getLocalization().sendMessage(sender, "commands.cleardata.worldNotFound", true);
                         return;
                     }
+
+                    worlds.add(toAdd);
                 }
 
                 if (args[2].equals("*")) {
@@ -52,9 +54,12 @@ public class ClearDataCommand extends SubCommand {
                             controller.removeAllDataInWorldAsync(
                                     world,
                                     () -> Slimefun.runSync(() -> Slimefun.getLocalization()
-                                            .sendMessage(sender, "commands.cleardata.success", true, msg -> msg.replace(
-                                                            "{0}", world.getName())
-                                                    .replace("{1}", block))));
+                                            .sendMessage(
+                                                    sender,
+                                                    "commands.cleardata.success",
+                                                    true,
+                                                    msg -> msg.replace("{0}", world.getName())
+                                                            .replace("{1}", block))));
                         } else if (cleartype.equals("oil")) {
                             GEOResource oilresource = null;
                             for (GEOResource resource :
@@ -69,9 +74,12 @@ public class ClearDataCommand extends SubCommand {
                                     world,
                                     oilresource.getKey().toString().replace(":", "-"),
                                     () -> Slimefun.runSync(() -> Slimefun.getLocalization()
-                                            .sendMessage(sender, "commands.cleardata.success", true, msg -> msg.replace(
-                                                            "{0}", world.getName())
-                                                    .replace("{1}", oil))));
+                                            .sendMessage(
+                                                    sender,
+                                                    "commands.cleardata.success",
+                                                    true,
+                                                    msg -> msg.replace("{0}", world.getName())
+                                                            .replace("{1}", oil))));
                         }
                     }
                 }

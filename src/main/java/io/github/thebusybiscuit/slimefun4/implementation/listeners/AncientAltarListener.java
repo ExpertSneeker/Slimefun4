@@ -173,6 +173,7 @@ public class AncientAltarListener implements Listener {
     private void useAltar(@Nonnull Block altar, @Nonnull Player p) {
         if (!Slimefun.getProtectionManager().hasPermission(p, altar, Interaction.INTERACT_BLOCK)) {
             Slimefun.getLocalization().sendMessage(p, "inventory.no-access", true);
+            altarsInUse.remove(altar.getLocation());
             return;
         }
 
@@ -322,7 +323,7 @@ public class AncientAltarListener implements Listener {
         ItemStackWrapper wrapper = ItemStackWrapper.wrap(catalyst);
         List<ItemStackWrapper> items = ItemStackWrapper.wrapList(inputs);
 
-        if (SlimefunUtils.isItemSimilar(wrapper, SlimefunItems.BROKEN_SPAWNER, false, false)) {
+        if (SlimefunUtils.isItemSimilar(wrapper, SlimefunItems.BROKEN_SPAWNER, false, false, false)) {
             if (!checkRecipe(SlimefunItems.BROKEN_SPAWNER, items).isPresent()) {
                 return Optional.empty();
             }

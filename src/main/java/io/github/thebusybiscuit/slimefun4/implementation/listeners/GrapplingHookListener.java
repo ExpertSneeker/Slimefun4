@@ -21,6 +21,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityPortalEnterEvent;
+import org.bukkit.event.entity.EntityUnleashEvent;
 import org.bukkit.event.entity.PlayerLeashEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -85,8 +86,11 @@ public class GrapplingHookListener implements Listener {
         }
 
         // This is called when the arrow shoots off a painting or an item frame
-        if (e.getRemover() instanceof Arrow arrow) {
-            handleGrapplingHook(arrow);
+        if (e.getRemover() instanceof Player player) {
+            GrapplingHookEntity hook = activeHooks.get(player.getUniqueId());
+            if (hook == null) return;
+            handleGrapplingHook(hook.getArrow());
+            e.setCancelled(true);
         }
     }
 
@@ -150,6 +154,20 @@ public class GrapplingHookListener implements Listener {
 
         if (slimeItem instanceof GrapplingHook) {
             e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onLeashBreak(EntityUnleashEvent e) {
+        if (grapplingHook.isDisabled()) {
+            return;
+        }
+
+        for (GrapplingHookEntity hook : activeHooks.values()) {
+            if (hook.getLeashTarget() == e.getEntity()) {
+                e.setDropLeash(false);
+                return;
+            }
         }
     }
 

@@ -502,6 +502,10 @@ public class SlimefunItem implements Placeable {
         }
     }
 
+    /**
+     * Enables this SlimefunItem.
+     * This method is called when the item is enabled after being disabled.
+     */
     public void enable() {
         if (state != ItemState.DISABLED) {
             return;
@@ -1294,6 +1298,8 @@ public class SlimefunItem implements Placeable {
     /**
      * Should load the {@link SlimefunBlockData} by default.
      * If return false, only the item with {@link BlockTicker} will be loaded with {@link ChunkLoadEvent}.
+     *
+     * @return true if the data should be loaded by default, false otherwise
      */
     public boolean loadDataByDefault() {
         return ticking;

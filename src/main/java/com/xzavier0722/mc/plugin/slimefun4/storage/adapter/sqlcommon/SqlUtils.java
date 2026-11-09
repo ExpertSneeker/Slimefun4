@@ -14,7 +14,8 @@ import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlC
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_PLAYER_UUID;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_RESEARCH_KEY;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_SLIMEFUN_ID;
-import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_TABLE_VERSION;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_TABLE_METADATA_KEY;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_TABLE_METADATA_VALUE;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_UNIVERSAL_TRAITS;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_UNIVERSAL_UUID;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_BACKPACK;
@@ -25,7 +26,7 @@ import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlC
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_CHUNK_DATA;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_PLAYER_PROFILE;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_PLAYER_RESEARCH;
-import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_TABLE_INFORMATION;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_TABLE_METADATA;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_UNIVERSAL_DATA;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_UNIVERSAL_INVENTORY;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.TABLE_NAME_UNIVERSAL_RECORD;
@@ -67,7 +68,8 @@ public class SqlUtils {
         fieldMap.put(FieldKey.DATA_VALUE, FIELD_DATA_VALUE);
         fieldMap.put(FieldKey.UNIVERSAL_UUID, FIELD_UNIVERSAL_UUID);
         fieldMap.put(FieldKey.UNIVERSAL_TRAITS, FIELD_UNIVERSAL_TRAITS);
-        fieldMap.put(FieldKey.TABLE_VERSION, FIELD_TABLE_VERSION);
+        fieldMap.put(FieldKey.METADATA_KEY, FIELD_TABLE_METADATA_KEY);
+        fieldMap.put(FieldKey.METADATA_VALUE, FIELD_TABLE_METADATA_VALUE);
         mapper = new FieldMapper<>(fieldMap);
     }
 
@@ -84,7 +86,7 @@ public class SqlUtils {
             case UNIVERSAL_INVENTORY -> TABLE_NAME_UNIVERSAL_INVENTORY;
             case UNIVERSAL_RECORD -> TABLE_NAME_UNIVERSAL_RECORD;
             case UNIVERSAL_DATA -> TABLE_NAME_UNIVERSAL_DATA;
-            case TABLE_INFORMATION -> TABLE_NAME_TABLE_INFORMATION;
+            case TABLE_METADATA -> TABLE_NAME_TABLE_METADATA;
             case NONE -> throw new IllegalArgumentException("NONE cannot be a storage data scope!");
         };
     }
@@ -125,12 +127,40 @@ public class SqlUtils {
                                 .toList());
     }
 
+    /**
+     * @deprecated 请使用 {@link #buildKvStr(FieldKey, Object)}
+     */
+    @Deprecated
     public static String buildKvStr(FieldKey key, String val) {
-        return mapField(key) + (isWildcardsMatching(val) ? " LIKE " : "=") + toSqlValStr(key, val);
+        return buildKvStr(key, (Object) val);
     }
 
+    public static String buildKvStr(FieldKey key, Object val) {
+        if (val instanceof byte[] bytes) {
+            return mapField(key) + "=" + toBinarySqlValStr(bytes, false);
+        }
+        var stringVal = (String) val;
+        return mapField(key) + (isWildcardsMatching(stringVal) ? " LIKE " : "=") + toSqlValStr(key, stringVal);
+    }
+
+    /**
+     * @deprecated 请使用 {@link #toSqlValStr(FieldKey, Object)}
+     */
+    @Deprecated
     public static String toSqlValStr(FieldKey key, String val) {
-        return key.isNumType() ? val : "'" + val + "'";
+        return toSqlValStr(key, (Object) val);
+    }
+
+    public static String toSqlValStr(FieldKey key, Object val) {
+        if (val instanceof byte[] bytes) {
+            return toBinarySqlValStr(bytes, false);
+        }
+        var stringVal = (String) val;
+        return key.isNumType() ? stringVal : "'" + stringVal + "'";
+    }
+
+    public static String toPostgreSqlValStr(FieldKey key, Object val) {
+        return val instanceof byte[] bytes ? toBinarySqlValStr(bytes, true) : toSqlValStr(key, val);
     }
 
     public static List<RecordSet> execQuery(Connection conn, String sql) throws SQLException {
@@ -147,7 +177,19 @@ public class SqlUtils {
                     }
                     var row = new RecordSet();
                     for (var i = 1; i <= columnCount; i++) {
-                        row.put(SqlUtils.mapField(metaData.getColumnName(i)), result.getString(i));
+                        var field = SqlUtils.mapField(metaData.getColumnName(i));
+                        if (field == FieldKey.INVENTORY_ITEM) {
+                            var storedItem = result.getObject(i);
+                            row.put(
+                                    field,
+                                    storedItem instanceof byte[] bytes
+                                            ? bytes
+                                            : storedItem
+                                                    .toString()
+                                                    .getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+                        } else {
+                            row.put(field, result.getString(i));
+                        }
                     }
                     row.readonly();
                     re.add(row);
@@ -171,5 +213,10 @@ public class SqlUtils {
 
     private static boolean isWildcardsMatching(String val) {
         return val.endsWith("%") || val.contains("%");
+    }
+
+    private static String toBinarySqlValStr(byte[] val, boolean postgresql) {
+        var hex = java.util.HexFormat.of().formatHex(val);
+        return postgresql ? "decode('" + hex + "', 'hex')" : "X'" + hex + "'";
     }
 }

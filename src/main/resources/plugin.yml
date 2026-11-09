@@ -1,6 +1,6 @@
 # Name and version
 name: Slimefun
-version: ${project.version}
+version: ${version}
 
 # Project metadata
 author: The Slimefun 4 Community
@@ -109,4 +109,7 @@ permissions:
     default: op
   slimefun.debugging:
     description: Allows you to use the debugging tool from Slimefun
+    default: op
+  slimefun.command.tick:
+    description: Allows you to do /sf tick
     default: op

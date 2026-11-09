@@ -8,7 +8,6 @@ import com.xzavier0722.mc.plugin.slimefun4.storage.controller.SlimefunUniversalD
 import com.xzavier0722.mc.plugin.slimefun4.storage.controller.attributes.UniversalBlock;
 import com.xzavier0722.mc.plugin.slimefun4.storage.util.LocationUtils;
 import com.xzavier0722.mc.plugin.slimefun4.storage.util.StorageCacheUtils;
-import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.chat.ChatInput;
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.common.CommonPatterns;
@@ -33,7 +32,6 @@ import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.HeadTexture;
 import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
-import io.papermc.lib.PaperLib;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -128,8 +126,6 @@ public class ProgrammableAndroid extends SlimefunItem
             public void newInstance(UniversalMenu menu, Block b) {
                 var uniData = StorageCacheUtils.getUniversalBlock(menu.getUuid());
 
-                Objects.requireNonNull(uniData, "Unable to get android's universal data for " + menu.getUuid() + "!");
-
                 menu.replaceExistingItem(
                         15, new CustomItemStack(HeadTexture.SCRIPT_START.getAsItemStack(), "&a启动/继续运行"));
                 menu.addMenuClickHandler(15, (p, slot, item, action) -> {
@@ -205,6 +201,8 @@ public class ProgrammableAndroid extends SlimefunItem
                         rotatable.setRotation(p.getFacing());
                     }
                 }));
+
+                PlayerHead.setSkin(b, PlayerSkin.fromBase64(texture), true);
             }
         };
     }
@@ -219,22 +217,17 @@ public class ProgrammableAndroid extends SlimefunItem
 
                 var uniData = StorageCacheUtils.getUniversalBlock(b);
 
-                if (uniData != null) {
-                    if (!e.getPlayer().hasPermission("slimefun.android.bypass")
-                            && !e.getPlayer().getUniqueId().toString().equals(uniData.getData("owner"))) {
-                        // The Player is not allowed to break this android
-                        e.setCancelled(true);
-                        return;
-                    }
+                if (!e.getPlayer().hasPermission("slimefun.android.bypass")
+                        && !e.getPlayer().getUniqueId().toString().equals(uniData.getData("owner"))) {
+                    // The Player is not allowed to break this android
+                    e.setCancelled(true);
+                    return;
+                }
 
-                    var menu = uniData.getMenu();
-                    if (menu != null) {
-                        menu.dropItems(b.getLocation(), 43);
-                        menu.dropItems(b.getLocation(), getOutputSlots());
-                    }
-                } else {
-                    throw new IllegalStateException(
-                            "Missing universal id android @" + LocationUtils.locationToString(b.getLocation()));
+                var menu = uniData.getMenu();
+                if (menu != null) {
+                    menu.dropItems(b.getLocation(), 43);
+                    menu.dropItems(b.getLocation(), getOutputSlots());
                 }
             }
         };
@@ -260,8 +253,9 @@ public class ProgrammableAndroid extends SlimefunItem
             case 1 -> AndroidFuelSource.SOLID;
             case 2 -> AndroidFuelSource.LIQUID;
             case 3 -> AndroidFuelSource.NUCLEAR;
-            default -> throw new IllegalStateException(
-                    "Cannot convert the following Android tier to a fuel type: " + getTier());
+            default ->
+                throw new IllegalStateException(
+                        "Cannot convert the following Android tier to a fuel type: " + getTier());
         };
     }
 
@@ -884,7 +878,7 @@ public class ProgrammableAndroid extends SlimefunItem
     protected void depositItems(UniversalMenu menu, Block facedBlock) {
         if (facedBlock.getType() == Material.DISPENSER
                 && StorageCacheUtils.isBlock(facedBlock.getLocation(), "ANDROID_INTERFACE_ITEMS")) {
-            BlockState state = PaperLib.getBlockState(facedBlock, false).getState();
+            BlockState state = facedBlock.getState(false);
 
             if (state instanceof Dispenser dispenser) {
                 for (int slot : getOutputSlots()) {
@@ -908,7 +902,7 @@ public class ProgrammableAndroid extends SlimefunItem
     protected void refuel(UniversalMenu menu, Block facedBlock) {
         if (facedBlock.getType() == Material.DISPENSER
                 && StorageCacheUtils.isBlock(facedBlock.getLocation(), "ANDROID_INTERFACE_FUEL")) {
-            BlockState state = PaperLib.getBlockState(facedBlock, false).getState();
+            BlockState state = facedBlock.getState(false);
 
             if (state instanceof Dispenser dispenser) {
                 for (int slot = 0; slot < 9; slot++) {
@@ -1030,13 +1024,9 @@ public class ProgrammableAndroid extends SlimefunItem
                 return;
             }
 
-            Slimefun.getTickerTask().disableTicker(from.getLocation());
-
             // Bro encountered a ghost 💀
             if (StorageCacheUtils.hasSlimefunBlock(to.getLocation())) {
-                var data = StorageCacheUtils.getBlock(to.getLocation()) == null
-                        ? StorageCacheUtils.getBlock(to.getLocation())
-                        : StorageCacheUtils.getUniversalBlock(to);
+                var data = StorageCacheUtils.getDataContainer(to.getLocation());
                 if (data != null && !data.isPendingRemove()) {
                     // Since it's a ghost, we just hunt it.
                     Slimefun.getDatabaseManager().getBlockDataController().removeBlock(to.getLocation());
@@ -1050,8 +1040,7 @@ public class ProgrammableAndroid extends SlimefunItem
                 }
             }));
 
-            Slimefun.getBlockDataService()
-                    .updateUniversalDataUUID(to, uniData.getUUID().toString());
+            Slimefun.getDatabaseManager().getBlockDataController().move(uniData, to.getLocation());
 
             Slimefun.runSync(() -> {
                 PlayerSkin skin = PlayerSkin.fromBase64(texture);
@@ -1063,10 +1052,6 @@ public class ProgrammableAndroid extends SlimefunItem
             });
 
             from.setType(Material.AIR);
-            uniData.setLastPresent(new BlockPosition(to.getLocation()));
-            uniData.getMenu().update(to.getLocation());
-
-            Slimefun.getTickerTask().enableTicker(to.getLocation(), uniData.getUUID());
         }
     }
 

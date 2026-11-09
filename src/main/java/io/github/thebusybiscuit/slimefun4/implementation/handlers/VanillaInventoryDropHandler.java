@@ -2,7 +2,6 @@ package io.github.thebusybiscuit.slimefun4.implementation.handlers;
 
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
-import io.papermc.lib.PaperLib;
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -54,27 +53,31 @@ public class VanillaInventoryDropHandler<T extends BlockState & InventoryHolder>
     @Override
     @ParametersAreNonnullByDefault
     public void onPlayerBreak(BlockBreakEvent e, ItemStack item, List<ItemStack> drops) {
-        // Fixes #2906 - Spigot being buggy as always...
-        if (!PaperLib.isPaper()) {
-            return;
-        }
-
         Block b = e.getBlock();
-        BlockState state = PaperLib.getBlockState(b, false).getState();
+        BlockState state = b.getState(false);
 
         if (blockStateClass.isInstance(state)) {
             T inventoryHolder = blockStateClass.cast(state);
+            dropVanillaBlockInventory(inventoryHolder, drops);
+        }
+    }
 
-            for (ItemStack stack : getInventory(inventoryHolder)) {
-                if (stack != null && !stack.getType().isAir()) {
-                    drops.add(stack);
+    public static void dropVanillaBlockInventory(BlockState blockStateReference, List<ItemStack> drops) {
+        if (blockStateReference instanceof InventoryHolder blockInventoryHolder) {
+            Inventory inventory = getInventory(blockInventoryHolder);
+            int size = inventory.getSize();
+            for (int i = 0; i < size; i++) {
+                ItemStack item = inventory.getItem(i);
+                if (item != null && !item.getType().isAir()) {
+                    inventory.setItem(i, null);
+                    drops.add(item);
                 }
             }
         }
     }
 
     @Nonnull
-    protected Inventory getInventory(@Nonnull T inventoryHolder) {
+    protected static Inventory getInventory(@Nonnull InventoryHolder inventoryHolder) {
         if (inventoryHolder instanceof Chest chest) {
             return chest.getBlockInventory();
         } else {

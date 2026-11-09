@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.core.attributes;
 
+import com.xzavier0722.mc.plugin.slimefun4.storage.controller.ASlimefunDataContainer;
 import com.xzavier0722.mc.plugin.slimefun4.storage.controller.SlimefunBlockData;
 import com.xzavier0722.mc.plugin.slimefun4.storage.util.StorageCacheUtils;
 import io.github.bakedlibs.dough.blocks.BlockPosition;
@@ -24,6 +25,8 @@ import org.bukkit.Location;
  * You can specify the Type of Block via {@link EnergyNetComponent#getEnergyComponentType()}.
  * You can also specify a capacity for this Block via {@link EnergyNetComponent#getCapacity()}.
  *
+ * You can support your machine to store long value of energy via {@link EnergyNetComponent#getCapacityLong()}, and make {@link EnergyNetComponent#getCapacity()} returns Integer.MAX_VALUE
+ *
  * @author TheBusyBiscuit
  *
  * @see EnergyNetComponentType
@@ -47,6 +50,11 @@ public interface EnergyNetComponent extends ItemAttribute {
      *
      * @return The max amount of electricity this Block can store.
      */
+    default long getCapacityLong() {
+        return getCapacity();
+    }
+
+    @Deprecated
     int getCapacity();
 
     /**
@@ -56,7 +64,7 @@ public interface EnergyNetComponent extends ItemAttribute {
      * @return Whether this {@link EnergyNetComponent} can store energy.
      */
     default boolean isChargeable() {
-        return getCapacity() > 0;
+        return getCapacityLong() > 0;
     }
 
     /**
@@ -67,13 +75,13 @@ public interface EnergyNetComponent extends ItemAttribute {
      *
      * @return The charge stored at that {@link Location}
      */
-    default int getCharge(@Nonnull Location l) {
+    default long getChargeLong(@Nonnull Location l) {
         // Emergency fallback, this cannot hold a charge, so we'll just return zero
         if (!isChargeable()) {
             return 0;
         }
 
-        var blockData = StorageCacheUtils.getBlock(l);
+        var blockData = StorageCacheUtils.getDataContainer(l);
         if (blockData == null || blockData.isPendingRemove()) {
             return 0;
         }
@@ -83,7 +91,12 @@ public interface EnergyNetComponent extends ItemAttribute {
             return 0;
         }
 
-        return getCharge(l, blockData);
+        return getChargeLong(l, blockData);
+    }
+
+    @Deprecated
+    default int getCharge(@Nonnull Location l) {
+        return (int) NumberUtils.clamp(Integer.MIN_VALUE, getChargeLong(l), Integer.MAX_VALUE);
     }
 
     @Deprecated
@@ -97,7 +110,7 @@ public interface EnergyNetComponent extends ItemAttribute {
             return 0;
         }
 
-        var blockData = StorageCacheUtils.getBlock(l);
+        var blockData = StorageCacheUtils.getDataContainer(l);
         if (blockData == null || blockData.isPendingRemove()) {
             return 0;
         }
@@ -108,6 +121,20 @@ public interface EnergyNetComponent extends ItemAttribute {
         }
 
         return getCharge(l, blockData);
+    }
+
+    default int getCharge(@Nonnull Location l, @Nonnull ASlimefunDataContainer data) {
+        return (int) NumberUtils.longToInt(getChargeLong(l, data));
+    }
+
+    @Deprecated
+    default int getCharge(@Nonnull Location l, @Nonnull SlimefunBlockData data) {
+        return (int) NumberUtils.longToInt(getChargeLong(l, data));
+    }
+
+    @Deprecated(forRemoval = true)
+    default long getChargeLong(@Nonnull Location l, @Nonnull SlimefunBlockData data) {
+        return getChargeLong(l, (ASlimefunDataContainer) data);
     }
 
     /**
@@ -121,7 +148,7 @@ public interface EnergyNetComponent extends ItemAttribute {
      *
      * @return The charge stored at that {@link Location}
      */
-    default int getCharge(@Nonnull Location l, @Nonnull SlimefunBlockData data) {
+    default long getChargeLong(@Nonnull Location l, @Nonnull ASlimefunDataContainer data) {
         Validate.notNull(l, "Location was null!");
         Validate.notNull(data, "data was null!");
 
@@ -133,10 +160,16 @@ public interface EnergyNetComponent extends ItemAttribute {
         String charge = data.getData("energy-charge");
 
         if (charge != null) {
-            return Integer.parseInt(charge);
+            // parseLong compatible with old int values
+            return Long.parseLong(charge);
         } else {
             return 0;
         }
+    }
+
+    @Deprecated
+    default void setCharge(@Nonnull Location l, int charge) {
+        setCharge(l, (long) charge);
     }
 
     /**
@@ -149,12 +182,12 @@ public interface EnergyNetComponent extends ItemAttribute {
      * @param charge
      *            The new charge
      */
-    default void setCharge(@Nonnull Location l, int charge) {
+    default void setCharge(@Nonnull Location l, long charge) {
         Validate.notNull(l, "Location was null!");
         Validate.isTrue(charge >= 0, "You can only set a charge of zero or more!");
 
         try {
-            int capacity = getCapacity();
+            long capacity = getCapacity();
 
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
@@ -162,7 +195,7 @@ public interface EnergyNetComponent extends ItemAttribute {
 
                 // Do we even need to update the value?
                 if (charge != getCharge(l)) {
-                    var blockData = StorageCacheUtils.getBlock(l);
+                    var blockData = StorageCacheUtils.getDataContainer(l);
 
                     if (blockData == null || blockData.isPendingRemove()) {
                         return;
@@ -177,7 +210,7 @@ public interface EnergyNetComponent extends ItemAttribute {
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {
-                        SlimefunUtils.updateCapacitorTexture(l, charge, capacity);
+                        SlimefunUtils.updateCapacitorTexture(l, (double) charge / capacity);
                     }
                 }
             }
@@ -193,25 +226,30 @@ public interface EnergyNetComponent extends ItemAttribute {
         }
     }
 
+    @Deprecated
     default void addCharge(@Nonnull Location l, int charge) {
+        addCharge(l, (long) charge);
+    }
+
+    default void addCharge(@Nonnull Location l, long charge) {
         Validate.notNull(l, "Location was null!");
         Validate.isTrue(charge > 0, "You can only add a positive charge!");
 
         try {
-            int capacity = getCapacity();
+            long capacity = getCapacityLong();
 
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
-                int currentCharge = getCharge(l);
+                long currentCharge = getChargeLong(l);
 
                 // Check if there is even space for new energy
                 if (currentCharge < capacity) {
-                    int newCharge = Math.min(capacity, currentCharge + charge);
+                    long newCharge = NumberUtils.flowSafeAddition(capacity, currentCharge, charge);
                     StorageCacheUtils.setData(l, "energy-charge", String.valueOf(newCharge));
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {
-                        SlimefunUtils.updateCapacitorTexture(l, charge, capacity);
+                        SlimefunUtils.updateCapacitorTexture(l, (double) newCharge / capacity);
                     }
                 }
             }
@@ -227,25 +265,30 @@ public interface EnergyNetComponent extends ItemAttribute {
         }
     }
 
+    @Deprecated
     default void removeCharge(@Nonnull Location l, int charge) {
+        removeCharge(l, (long) charge);
+    }
+
+    default void removeCharge(@Nonnull Location l, long charge) {
         Validate.notNull(l, "Location was null!");
         Validate.isTrue(charge > 0, "The charge to remove must be greater than zero!");
 
         try {
-            int capacity = getCapacity();
+            long capacity = getCapacityLong();
 
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
-                int currentCharge = getCharge(l);
+                long currentCharge = getChargeLong(l);
 
                 // Check if there is even energy stored
                 if (currentCharge > 0) {
-                    int newCharge = Math.max(0, currentCharge - charge);
+                    long newCharge = Math.max(0, currentCharge - charge);
                     StorageCacheUtils.setData(l, "energy-charge", String.valueOf(newCharge));
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {
-                        SlimefunUtils.updateCapacitorTexture(l, charge, capacity);
+                        SlimefunUtils.updateCapacitorTexture(l, (double) newCharge / capacity);
                     }
                 }
             }

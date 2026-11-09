@@ -3,12 +3,12 @@ package me.mrCookieSlime.CSCoreLibPlugin.general.Inventory;
 import city.norain.slimefun4.holder.SlimefunInventoryHolder;
 import city.norain.slimefun4.utils.InventoryUtil;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
@@ -46,7 +46,10 @@ public class ChestMenu extends SlimefunInventoryHolder {
     private MenuCloseHandler close;
     private MenuClickHandler playerclick;
 
+    @Deprecated(forRemoval = true)
+    // 何意味
     private final Set<UUID> viewers = new CopyOnWriteArraySet<>();
+
     private final AtomicBoolean lock = new AtomicBoolean(false);
 
     /**
@@ -59,8 +62,8 @@ public class ChestMenu extends SlimefunInventoryHolder {
         this.title = ChatColor.translateAlternateColorCodes('&', title);
         this.clickable = false;
         this.emptyClickable = true;
-        this.items = new ArrayList<>();
-        this.handlers = new HashMap<>();
+        this.items = new CopyOnWriteArrayList<>();
+        this.handlers = new ConcurrentHashMap<>();
 
         this.open = p -> {};
         this.close = p -> {};
@@ -257,6 +260,7 @@ public class ChestMenu extends SlimefunInventoryHolder {
 
     private void setup() {
         if (this.inventory != null) return;
+
         this.inventory = Bukkit.createInventory(this, getSize(), title);
         for (int i = 0; i < this.items.size(); i++) {
             this.inventory.setItem(i, this.items.get(i));
@@ -300,7 +304,7 @@ public class ChestMenu extends SlimefunInventoryHolder {
     public void open(Player... players) {
         setup();
         for (Player p : players) {
-            p.openInventory(this.inventory);
+            InventoryUtil.openInventory(p, this.inventory);
             addViewer(p.getUniqueId());
             if (open != null) open.onOpen(p);
         }

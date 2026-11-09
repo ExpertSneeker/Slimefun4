@@ -24,13 +24,17 @@ public class SlimefunUniversalBlockData extends SlimefunUniversalData {
         this(uuid, sfId, new BlockPosition(present));
     }
 
+    public void initTraits() {
+        addTrait(UniversalDataTrait.BLOCK, UniversalDataTrait.INVENTORY);
+    }
+
     public void initLastPresent() {
         setTraitData(UniversalDataTrait.BLOCK, LocationUtils.getLocKey(lastPresent.toLocation()));
     }
 
-    public void setLastPresent(BlockPosition lastPresent) {
-        setTraitData(UniversalDataTrait.BLOCK, LocationUtils.getLocKey(lastPresent.toLocation()));
-        this.lastPresent = lastPresent;
+    public void setLastPresent(BlockPosition bp) {
+        this.lastPresent = bp;
+        setTraitData(UniversalDataTrait.BLOCK, LocationUtils.getLocKey(bp.toLocation()));
     }
 
     public void setLastPresent(Location l) {
@@ -38,8 +42,13 @@ public class SlimefunUniversalBlockData extends SlimefunUniversalData {
     }
 
     public BlockPosition getLastPresent() {
+        if (!isDataLoaded()) {
+            return null;
+        }
+
         var data = getData(UniversalDataTrait.BLOCK.getReservedKey());
 
+        // 自动修复丢失的位置数据
         if (lastPresent != null) {
             if (data == null) {
                 setTraitData(UniversalDataTrait.BLOCK, LocationUtils.getLocKey(lastPresent.toLocation()));
@@ -53,29 +62,50 @@ public class SlimefunUniversalBlockData extends SlimefunUniversalData {
         }
 
         try {
-            lastPresent = new BlockPosition(LocationUtils.toLocation(data));
+            var location = LocationUtils.toLocation(data);
+            if (location.getWorld() == null) {
+                return null;
+            }
+
+            lastPresent = new BlockPosition(location);
         } catch (RuntimeException e) {
             if (data.isEmpty()) {
                 return null;
             }
 
             // 修复因使用不一致的文本转换导致的位置无法解析
-            try {
-                var lArr = data.split(",");
-                var bp = new BlockPosition(
-                        Bukkit.getWorld(lArr[0].replace("[world=", "")),
-                        (int) Double.parseDouble(lArr[1].replace("x=", "")),
-                        (int) Double.parseDouble(lArr[2].replace("y=", "")),
-                        (int) Double.parseDouble(lArr[3].replace("z=", "").replace("]", "")));
-
-                setTraitData(UniversalDataTrait.BLOCK, LocationUtils.getLocKey(bp.toLocation()));
-
-                return bp;
-            } catch (Exception x) {
-                throw new RuntimeException("Unable to fix location " + data + ", it might be broken", x);
-            }
+            oldLocationFix(data);
         }
 
         return lastPresent;
+    }
+
+    private void oldLocationFix(String data) {
+        try {
+            var lArr = data.split(",");
+            var world = Bukkit.getWorld(lArr[0].replace("[world=", ""));
+            if (world == null) {
+                return;
+            }
+
+            var bp = new BlockPosition(
+                    world,
+                    (int) Double.parseDouble(lArr[1].replace("x=", "")),
+                    (int) Double.parseDouble(lArr[2].replace("y=", "")),
+                    (int) Double.parseDouble(lArr[3].replace("z=", "").replace("]", "")));
+
+            setTraitData(UniversalDataTrait.BLOCK, LocationUtils.getLocKey(bp.toLocation()));
+
+            lastPresent = bp;
+        } catch (Exception x) {
+            throw new RuntimeException("Unable to fix location " + data + ", it might be broken", x);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "SlimefunUniversalBlockData [uuid= " + getUUID() + ", sfId=" + getSfId() + ", isPendingRemove="
+                + isPendingRemove() + ", lastPresent=" + lastPresent + ", hasMenu=" + (getMenu() != null) + ", traits="
+                + getTraits() + "]";
     }
 }

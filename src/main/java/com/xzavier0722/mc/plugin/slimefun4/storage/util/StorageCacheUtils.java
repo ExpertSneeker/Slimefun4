@@ -11,9 +11,9 @@ import com.xzavier0722.mc.plugin.slimefun4.storage.controller.SlimefunUniversalD
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArraySet;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -28,7 +28,7 @@ import org.bukkit.block.Block;
  * {@link com.xzavier0722.mc.plugin.slimefun4.storage.controller.BlockDataController#getBlockData}
  */
 public class StorageCacheUtils {
-    private static final Set<ADataContainer> loadingData = new HashSet<>();
+    private static final Set<ADataContainer> loadingData = new CopyOnWriteArraySet<>();
 
     @ParametersAreNonnullByDefault
     public static boolean hasSlimefunBlock(Location l) {
@@ -42,9 +42,20 @@ public class StorageCacheUtils {
 
     @ParametersAreNonnullByDefault
     public static boolean hasUniversalBlock(Location l) {
-        return TaskUtil.runSyncMethod(() -> Slimefun.getBlockDataService()
-                .getUniversalDataUUID(l.getBlock())
-                .isPresent());
+        if (Slimefun.getDatabaseManager()
+                .getBlockDataController()
+                .getUniversalBlockDataFromCache(l)
+                .isPresent()) {
+            return true;
+        }
+
+        var block = l.getBlock();
+        if (!Slimefun.getBlockDataService().isTileEntity(block.getType())) {
+            return false;
+        }
+
+        return TaskUtil.runSyncMethod(
+                () -> Slimefun.getBlockDataService().getUniversalDataUUID(block).isPresent());
     }
 
     @ParametersAreNonnullByDefault
@@ -53,13 +64,32 @@ public class StorageCacheUtils {
     }
 
     @ParametersAreNonnullByDefault
+    @Nullable public static ASlimefunDataContainer getDataContainer(Location l) {
+        var blockData = getBlock(l);
+        if (blockData != null) {
+            return blockData;
+        }
+
+        return getUniversalBlock(l);
+    }
+
+    @ParametersAreNonnullByDefault
     public static boolean isBlock(Location l, String id) {
         var blockData = getBlock(l);
         return blockData != null && id.equals(blockData.getSfId());
     }
 
+    /**
+     * @deprecated use {@link #getSlimefunItem(Location)} instead
+     */
+    @Deprecated(forRemoval = true)
     @ParametersAreNonnullByDefault
     @Nullable public static SlimefunItem getSfItem(Location l) {
+        return getSlimefunItem(l);
+    }
+
+    @ParametersAreNonnullByDefault
+    @Nullable public static SlimefunItem getSlimefunItem(Location l) {
         var blockData = getBlock(l);
 
         if (blockData != null) {
@@ -88,7 +118,7 @@ public class StorageCacheUtils {
     }
 
     @ParametersAreNonnullByDefault
-    @Nullable public static String getUniversalBlock(UUID uuid, Location loc, String key) {
+    @Nullable public static String getUniversalBlockData(UUID uuid, Location loc, String key) {
         var universalData = getUniversalBlock(uuid, loc);
         return universalData == null ? null : universalData.getData(key);
     }
@@ -154,9 +184,14 @@ public class StorageCacheUtils {
 
     @ParametersAreNonnullByDefault
     @Nullable public static SlimefunUniversalBlockData getUniversalBlock(UUID uuid, Location l) {
+        return getUniversalBlock(uuid, l, true);
+    }
+
+    @ParametersAreNonnullByDefault
+    @Nullable public static SlimefunUniversalBlockData getUniversalBlock(UUID uuid, Location l, boolean updateLastPresent) {
         var uniData = getUniversalBlock(uuid);
 
-        if (uniData != null) {
+        if (uniData != null && updateLastPresent) {
             uniData.setLastPresent(new BlockPosition(l));
         }
 
@@ -289,6 +324,10 @@ public class StorageCacheUtils {
                 loadingData.remove(data);
             }
         });
+    }
+
+    public static void move(ASlimefunDataContainer data, Location to) {
+        Slimefun.getDatabaseManager().getBlockDataController().move(data, to);
     }
 
     public static void executeAfterLoad(ASlimefunDataContainer data, Runnable execute, boolean runOnMainThread) {

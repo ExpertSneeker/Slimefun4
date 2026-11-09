@@ -14,9 +14,11 @@ import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlC
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_PLAYER_UUID;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_RESEARCH_KEY;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_SLIMEFUN_ID;
-import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_TABLE_VERSION;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_TABLE_METADATA_KEY;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_TABLE_METADATA_VALUE;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_UNIVERSAL_TRAITS;
 import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.FIELD_UNIVERSAL_UUID;
+import static com.xzavier0722.mc.plugin.slimefun4.storage.adapter.sqlcommon.SqlConstants.METADATA_VERSION;
 
 import city.norain.slimefun4.timings.entry.SQLEntry;
 import com.xzavier0722.mc.plugin.slimefun4.storage.adapter.IDataSourceAdapter;
@@ -28,6 +30,7 @@ import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordKey;
 import com.xzavier0722.mc.plugin.slimefun4.storage.common.RecordSet;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.List;
 
 public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
@@ -38,12 +41,13 @@ public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
             case BLOCK_STORAGE -> createBlockStorageTables();
         }
 
-        createTableInformationTable();
+        tableMetadataTable = SqlUtils.mapTable(DataScope.TABLE_METADATA);
+        createTableMetadataTable();
     }
 
     @Override
     public void setData(RecordKey key, RecordSet item) {
-        var data = item.getAll();
+        var data = item.getAllValues();
         var fields = data.keySet();
         var fieldStr = SqlUtils.buildFieldStr(fields);
         if (fieldStr.isEmpty()) {
@@ -76,7 +80,7 @@ public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
                             ", ",
                             updateFields.stream()
                                     .map(field -> {
-                                        var val = item.get(field);
+                                        var val = item.getValue(field);
                                         if (val == null) {
                                             throw new IllegalArgumentException(
                                                     "Cannot find value in RecordSet for the specific key: " + field);
@@ -216,7 +220,7 @@ public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
                 + FIELD_INVENTORY_SLOT
                 + " INTEGER NOT NULL, "
                 + FIELD_INVENTORY_ITEM
-                + " TEXT NOT NULL, "
+                + " BLOB NOT NULL, "
                 + "FOREIGN KEY ("
                 + FIELD_BACKPACK_ID
                 + ") "
@@ -304,7 +308,7 @@ public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
                 + FIELD_INVENTORY_SLOT
                 + " INTEGER NOT NULL, "
                 + FIELD_INVENTORY_ITEM
-                + " TEXT NOT NULL, "
+                + " BLOB NOT NULL, "
                 + "FOREIGN KEY ("
                 + FIELD_LOCATION
                 + ") "
@@ -331,7 +335,7 @@ public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
                 + FIELD_INVENTORY_SLOT
                 + " TINYINT UNSIGNED NOT NULL, "
                 + FIELD_INVENTORY_ITEM
-                + " TEXT NOT NULL,"
+                + " BLOB NOT NULL,"
                 + "PRIMARY KEY ("
                 + FIELD_UNIVERSAL_UUID
                 + ", "
@@ -383,19 +387,27 @@ public class SqliteAdapter extends SqlCommonAdapter<SqliteConfig> {
                 + ");");
     }
 
-    private void createTableInformationTable() {
-        var table = SqlUtils.mapTable(DataScope.TABLE_INFORMATION);
-        executeSql("CREATE TABLE IF NOT EXISTS "
-                + table
-                + "("
-                + FIELD_TABLE_VERSION
-                + " INT UNIQUE NOT NULL DEFAULT '0'"
-                + ");");
+    private void createTableMetadataTable() {
+        executeSql(MessageFormat.format(
+                """
+                CREATE TABLE IF NOT EXISTS {0}
+                (
+                    {1} VARCHAR(255) UNIQUE NOT NULL,
+                    {2} TEXT NOT NULL
+                );
+                """,
+                SqlUtils.mapTable(DataScope.TABLE_METADATA), FIELD_TABLE_METADATA_KEY, FIELD_TABLE_METADATA_VALUE));
 
         if (Slimefun.isNewlyInstalled()) {
-            executeSql("INSERT INTO " + tableInformationTable + " (" + FIELD_TABLE_VERSION + ") SELECT '"
-                    + IDataSourceAdapter.DATABASE_VERSION + "' WHERE NOT EXISTS (SELECT 1 FROM " + tableInformationTable
-                    + ")");
+            executeSql(MessageFormat.format(
+                    """
+                    INSERT OR IGNORE INTO {0} ({1}, {2}) VALUES ("{3}", {4});
+                    """,
+                    SqlUtils.mapTable(DataScope.TABLE_METADATA),
+                    FIELD_TABLE_METADATA_KEY,
+                    FIELD_TABLE_METADATA_VALUE,
+                    METADATA_VERSION,
+                    IDataSourceAdapter.DATABASE_VERSION));
         }
     }
 

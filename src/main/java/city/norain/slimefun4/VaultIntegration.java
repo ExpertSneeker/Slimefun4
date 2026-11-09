@@ -8,6 +8,8 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.OfflinePlayer;
 
 /**
+ * Vault 集成类, 用于处理游戏币相关的操作.
+ *
  * @author StarWishsama
  */
 public class VaultIntegration {
@@ -23,7 +25,7 @@ public class VaultIntegration {
                 plugin.getLogger().log(Level.WARNING, "无法接入 Vault. 如果你是 CMI 用户, 请至配置文件启用经济系统");
             }
         } else {
-            plugin.getLogger().log(Level.WARNING, "无法接入 Vault, 使用游戏币解锁研究功能将无法使用");
+            plugin.getLogger().log(Level.WARNING, "服务端未安装 Vault, 游戏币解锁研究特性将无法使用");
         }
     }
 

@@ -1,7 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.entities;
 
 import com.xzavier0722.mc.plugin.slimefun4.storage.controller.SlimefunBlockData;
-import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
@@ -9,6 +8,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.settings.IntRangeSetting;
+import io.github.thebusybiscuit.slimefun4.api.items.virtual.VirtualItemHandler.InventoryContext;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -267,15 +267,15 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
     public @Nonnull List<ItemStack> getDisplayRecipes() {
         List<ItemStack> displayRecipes = new ArrayList<>();
 
-        displayRecipes.add(new CustomItemStack(Material.BUCKET, null, "&f需要 &b牛 &f在附近"));
+        displayRecipes.add(new CustomItemStack(Material.BUCKET, null, "&f需要附近有 &b牛 &f才会生产"));
         displayRecipes.add(new ItemStack(Material.MILK_BUCKET));
 
         if (Slimefun.getMinecraftVersion().isAtLeast(MinecraftVersion.MINECRAFT_1_17)) {
-            displayRecipes.add(new CustomItemStack(Material.BUCKET, null, "&f需要 &b山羊 &f在附近"));
+            displayRecipes.add(new CustomItemStack(Material.BUCKET, null, "&f需要附近有 &b山羊 &f才会生产"));
             displayRecipes.add(new ItemStack(Material.MILK_BUCKET));
         }
 
-        displayRecipes.add(new CustomItemStack(Material.BOWL, null, "&f需要 &b哞菇 &f在附近"));
+        displayRecipes.add(new CustomItemStack(Material.BOWL, null, "&f需要附近有 &b哞菇 &f才会生产"));
         displayRecipes.add(new ItemStack(Material.MUSHROOM_STEW));
 
         ItemStack ironBlock = new CustomItemStack(Material.IRON_BLOCK, null, "&f需要 &b铁傀儡 &f在附近");
@@ -368,7 +368,12 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
                 ItemStack item = inv.getItemInSlot(slot);
 
                 if (!SlimefunUtils.isItemSimilar(item, produce.getInput()[0], true, true)
-                        || !InvUtils.fits(inv.toInventory(), produce.getOutput()[0], getOutputSlots())) {
+                        || !Slimefun.getItemStackService()
+                                .fits(
+                                        inv.toInventory(),
+                                        produce.getOutput()[0],
+                                        InventoryContext.MACHINE_OUTPUT,
+                                        getOutputSlots())) {
                     continue;
                 }
 

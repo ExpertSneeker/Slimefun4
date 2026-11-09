@@ -18,20 +18,26 @@ jobs:
       matrix:
         include:
           - mcVersion: '1.17.1'
-            javaVersion: '17'
-          - mcVersion: '1.18.2'
-            javaVersion: '18'
-          - mcVersion: '1.19.4'
-            javaVersion: '19'
-          - mcVersion: 'latest'
             javaVersion: '21'
+          - mcVersion: '1.18.2'
+            javaVersion: '21'
+          - mcVersion: '1.19.4'
+            javaVersion: '21'
+          - mcVersion: '1.20.6'
+            javaVersion: '21'
+          - mcVersion: '1.21.4'
+            javaVersion: '21'
+          - mcVersion: '1.21.8'
+            javaVersion: '21'
+          - mcVersion: 'latest'
+            javaVersion: '25'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK
-        uses: actions/setup-java@v4.0.0
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: ${{ matrix.javaVersion }}
@@ -44,23 +50,44 @@ jobs:
           mkdir plugins
 
       - name: Download ${{ matrix.mcVersion }} Paper
+        shell: bash
         run: |
           VERSION="${{ matrix.mcVersion }}"
           if [ "$VERSION" == "latest" ]; then
-            VERSION=$(curl https://api.papermc.io/v2/projects/paper/ -s | jq -r '.versions[-1]')
+            VERSIONS=$(curl --fail --silent --show-error \
+              https://fill.papermc.io/v3/projects/paper \
+              | jq -er '.versions | to_entries[] | .value[]' | sort -V -r)
+          else
+            VERSIONS="$VERSION"
           fi
 
-          BUILD_JAR=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/$VERSION/builds" \
-            | jq '.builds[-1] | "\(.build) \(.downloads.application.name)"' -r)
-          BUILD=$(echo "$BUILD_JAR" | awk '{print $1}')
-          JAR_FILE=$(echo "$BUILD_JAR" | awk '{print $2}')
+          PAPER_BUILD=null
+          for VERSION in $VERSIONS; do
+            BUILDS=$(curl --fail --silent --show-error \
+              "https://fill.papermc.io/v3/projects/paper/versions/$VERSION/builds")
+            PAPER_BUILD=$(echo "$BUILDS" \
+              | jq -c 'first(.[] | select(.channel == "STABLE")) // null')
+            if [ "$PAPER_BUILD" != "null" ]; then
+              break
+            fi
+            echo "No stable Paper build for $VERSION"
+          done
 
-          echo "Downloading... https://api.papermc.io/v2/projects/paper/versions/$VERSION/builds/$BUILD/downloads/$JAR_FILE"
-          curl -o paper.jar \
-            "https://api.papermc.io/v2/projects/paper/versions/$VERSION/builds/$BUILD/downloads/$JAR_FILE"
+          PAPER_URL=$(echo "$PAPER_BUILD" \
+            | jq -er '.downloads["server:default"].url
+              // error("No stable Paper build found")')
+          PAPER_SHA256=$(echo "$PAPER_BUILD" \
+            | jq -er '.downloads["server:default"].checksums.sha256
+              // error("No checksum found for stable Paper build")')
+
+          echo "Downloading Paper $VERSION from $PAPER_URL"
+          curl --fail --location --show-error \
+            --output paper.jar \
+            "$PAPER_URL"
+          echo "$PAPER_SHA256  paper.jar" | sha256sum --check --strict
 
       - name: Download Slimefun
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact-name }}
           path: plugins/
