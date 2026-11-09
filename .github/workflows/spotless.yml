@@ -76,6 +76,9 @@ jobs:
     secrets: inherit
   call-beta-ci:
     needs: [ spotless ]
+    permissions:
+      contents: write
+      packages: read
     if: ${{ needs.spotless.outputs.spotless-status == '0' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'master' }}
     uses: ./.github/workflows/build-ci.yml
     secrets: inherit
