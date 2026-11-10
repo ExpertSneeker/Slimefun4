@@ -73,9 +73,11 @@ public final class ItemStackDataCodec {
             }
             try {
                 LegacyItemMetaDeserializer.setDelegate(original);
+                LegacyItemMetaDeserializer.setDataVersion(LegacyDataVersionReader.read(serializedObject));
                 ConfigurationSerialization.registerClass(LegacyItemMetaDeserializer.class, alias);
                 return deserializeLegacy(serializedObject);
             } finally {
+                LegacyItemMetaDeserializer.setDataVersion(LegacyDataVersionReader.UNKNOWN);
                 ConfigurationSerialization.unregisterClass(alias);
                 ConfigurationSerialization.registerClass(original, alias);
             }

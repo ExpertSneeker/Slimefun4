@@ -74,6 +74,51 @@ class DatabasePatchV3E2ETest {
         }
     }
 
+    @Test
+    void quarantinesUnreadableLegacyItemsAndKeepsMigrating() throws Exception {
+        var expected = new ItemStack(Material.DIAMOND_SWORD);
+        var legacyText = serializeLegacy(expected);
+        var unreadable =
+                Base64.getEncoder().encodeToString("not a java object stream".getBytes(StandardCharsets.UTF_8));
+
+        Class.forName("org.sqlite.JDBC");
+        try (var connection = DriverManager.getConnection("jdbc:sqlite::memory:");
+                var statement = connection.createStatement()) {
+            statement.execute(
+                    "CREATE TABLE backpack_inventory (b_id INTEGER NOT NULL, i_slot INTEGER NOT NULL, i_item TEXT NOT NULL, PRIMARY KEY (b_id, i_slot))");
+            try (var insert = connection.prepareStatement("INSERT INTO backpack_inventory VALUES (?, ?, ?)")) {
+                insert.setInt(1, 42);
+                insert.setInt(2, 3);
+                insert.setString(3, legacyText);
+                insert.executeUpdate();
+                insert.setInt(1, 42);
+                insert.setInt(2, 4);
+                insert.setString(3, unreadable);
+                insert.executeUpdate();
+            }
+
+            new DatabasePatchV3(() -> LOGGER).patch(statement, new SqliteConfig(":memory:", 1));
+
+            assertEquals("blob", readStoredItem(statement).storageType());
+            try (var result = statement.executeQuery(
+                    "SELECT i_item, typeof(i_item) AS storage_type FROM backpack_inventory WHERE b_id=42 AND i_slot=4")) {
+                assertTrue(result.next());
+                assertEquals("text", result.getString("storage_type"));
+                assertEquals(unreadable, result.getString("i_item"));
+            }
+            try (var result = statement.executeQuery(
+                    "SELECT source_table, owner, slot, legacy_item, error FROM " + DatabasePatchV3.QUARANTINE_TABLE)) {
+                assertTrue(result.next());
+                assertEquals("backpack_inventory", result.getString("source_table"));
+                assertEquals("42", result.getString("owner"));
+                assertEquals(4, result.getInt("slot"));
+                assertEquals(unreadable, result.getString("legacy_item"));
+                assertTrue(!result.getString("error").isBlank());
+                assertTrue(!result.next());
+            }
+        }
+    }
+
     private StoredItem readStoredItem(java.sql.Statement statement) throws Exception {
         try (var result = statement.executeQuery(
                 "SELECT i_item, typeof(i_item) AS storage_type FROM backpack_inventory WHERE b_id=42 AND i_slot=3")) {
