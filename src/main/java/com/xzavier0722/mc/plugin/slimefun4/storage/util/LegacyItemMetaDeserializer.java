@@ -21,11 +21,17 @@ public final class LegacyItemMetaDeserializer implements ConfigurationSerializab
     private static final String PUBLIC_BUKKIT_VALUES = "PublicBukkitValues";
     private static final Pattern UNQUOTED_SNBT_STRING = Pattern.compile("[A-Za-z0-9._+-]+");
     private static Class<? extends ConfigurationSerializable> delegate;
+    private static int dataVersion = LegacyDataVersionReader.UNKNOWN;
 
     private LegacyItemMetaDeserializer() {}
 
     static void setDelegate(Class<? extends ConfigurationSerializable> delegateClass) {
         delegate = delegateClass;
+    }
+
+    /** DataVersion of the legacy ItemStack being deserialized; guarded by the codec's legacy lock. */
+    static void setDataVersion(int version) {
+        dataVersion = version;
     }
 
     @SuppressWarnings("unchecked")
@@ -42,6 +48,7 @@ public final class LegacyItemMetaDeserializer implements ConfigurationSerializab
             legacyProfile = LegacySkullProfileDataFixer.extractProfile(encodedNbt);
             serializedMeta.put("internal", LegacySkullProfileDataFixer.fix(encodedNbt));
         }
+        serializedMeta = new LinkedHashMap<>(LegacyBlockStateMetaFixer.fix(serializedMeta, dataVersion));
 
         var itemMeta = ConfigurationSerialization.deserializeObject(serializedMeta, delegate);
         if (itemMeta instanceof ItemMeta bukkitMeta) {

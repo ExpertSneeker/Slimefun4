@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DatabasePatchV3 extends DatabasePatch {
+    static final String QUARANTINE_TABLE = "legacy_item_quarantine";
     private final Supplier<Logger> logger;
 
     public DatabasePatchV3() {
@@ -36,12 +37,25 @@ public class DatabasePatchV3 extends DatabasePatch {
     @Override
     public void patch(Statement stmt, ISqlCommonConfig config) throws SQLException {
         var prefix = config instanceof SqlCommonConfig sqlConfig ? sqlConfig.tablePrefix() : "";
-        migrateTable(stmt, config, SqlUtils.mapTable(DataScope.BACKPACK_INVENTORY, prefix), FIELD_BACKPACK_ID);
-        migrateTable(stmt, config, SqlUtils.mapTable(DataScope.BLOCK_INVENTORY, prefix), FIELD_LOCATION);
-        migrateTable(stmt, config, SqlUtils.mapTable(DataScope.UNIVERSAL_INVENTORY, prefix), FIELD_UNIVERSAL_UUID);
+        var quarantineTable = prefix + QUARANTINE_TABLE;
+        migrateTable(
+                stmt,
+                config,
+                SqlUtils.mapTable(DataScope.BACKPACK_INVENTORY, prefix),
+                FIELD_BACKPACK_ID,
+                quarantineTable);
+        migrateTable(
+                stmt, config, SqlUtils.mapTable(DataScope.BLOCK_INVENTORY, prefix), FIELD_LOCATION, quarantineTable);
+        migrateTable(
+                stmt,
+                config,
+                SqlUtils.mapTable(DataScope.UNIVERSAL_INVENTORY, prefix),
+                FIELD_UNIVERSAL_UUID,
+                quarantineTable);
     }
 
-    private void migrateTable(Statement stmt, ISqlCommonConfig config, String table, String ownerField)
+    private void migrateTable(
+            Statement stmt, ISqlCommonConfig config, String table, String ownerField, String quarantineTable)
             throws SQLException {
         if (!tableExists(stmt, table)) {
             return;
@@ -84,13 +98,14 @@ public class DatabasePatchV3 extends DatabasePatch {
                     migrated++;
                 } catch (Exception exception) {
                     failed++;
+                    var owner = result.getString(ownerField);
+                    var slot = result.getInt(FIELD_INVENTORY_SLOT);
                     logger.get()
                             .log(
                                     Level.SEVERE,
-                                    "无法迁移旧版物品数据: table=" + table + ", " + ownerField + "="
-                                            + result.getString(ownerField) + ", slot="
-                                            + result.getInt(FIELD_INVENTORY_SLOT),
+                                    "无法迁移旧版物品数据: table=" + table + ", " + ownerField + "=" + owner + ", slot=" + slot,
                                     exception);
+                    quarantine(stmt, config, quarantineTable, table, owner, slot, serializedItem, exception);
                 }
             }
             update.executeBatch();
@@ -101,8 +116,54 @@ public class DatabasePatchV3 extends DatabasePatch {
                 });
 
         if (failed > 0) {
-            throw new SQLException("仍有 " + failed + " 条物品数据无法迁移，数据库版本未更新");
+            logger.get().log(Level.SEVERE, "{0} 中有 {1} 条物品数据无法迁移：原记录保持不变，原始数据另存到 {2}，需要管理员人工处理", new Object[] {
+                table, failed, quarantineTable
+            });
         }
+    }
+
+    /**
+     * Keeps a copy of a legacy item that could not be migrated, so that it survives even if the
+     * original (unreadable) row is later overwritten when the inventory is saved.
+     */
+    private void quarantine(
+            Statement stmt,
+            ISqlCommonConfig config,
+            String quarantineTable,
+            String table,
+            String owner,
+            int slot,
+            byte[] serializedItem,
+            Exception exception)
+            throws SQLException {
+        var connection = stmt.getConnection();
+        try (var create = connection.createStatement()) {
+            var itemType = config instanceof MysqlConfig ? "MEDIUMTEXT" : "TEXT";
+            create.execute("CREATE TABLE IF NOT EXISTS " + quarantineTable
+                    + " (source_table VARCHAR(64) NOT NULL, owner VARCHAR(255) NOT NULL, slot INTEGER NOT NULL,"
+                    + " legacy_item " + itemType + " NOT NULL, error TEXT, quarantined_at BIGINT NOT NULL)");
+        }
+        try (var insert = connection.prepareStatement("INSERT INTO " + quarantineTable
+                + " (source_table, owner, slot, legacy_item, error, quarantined_at) VALUES (?, ?, ?, ?, ?, ?)")) {
+            insert.setString(1, table);
+            insert.setString(2, owner);
+            insert.setInt(3, slot);
+            insert.setString(4, new String(serializedItem, java.nio.charset.StandardCharsets.US_ASCII));
+            insert.setString(5, describe(exception));
+            insert.setLong(6, System.currentTimeMillis());
+            insert.executeUpdate();
+        }
+    }
+
+    private static String describe(Throwable throwable) {
+        var description = new StringBuilder();
+        for (var current = throwable; current != null && description.length() < 2000; current = current.getCause()) {
+            if (!description.isEmpty()) {
+                description.append(" <- ");
+            }
+            description.append(current.getClass().getName()).append(": ").append(current.getMessage());
+        }
+        return description.length() > 2000 ? description.substring(0, 2000) : description.toString();
     }
 
     private void migrateColumnType(Statement stmt, ISqlCommonConfig config, String table) throws SQLException {
